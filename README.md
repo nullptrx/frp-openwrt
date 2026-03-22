@@ -8,6 +8,13 @@ This repository follows the same feed-style layout used by `nps-openwrt`:
 - `luci-app-frpc/` and `luci-app-frps/` provide LuCI configuration pages.
 - `frp.ver` stores the current upstream release version.
 
+Runtime configuration is generated as TOML:
+
+- `frpc` writes `/var/etc/frpc/frpc.toml`
+- `frps` writes `/var/etc/frps/frps.toml`
+- `frpc` proxies are emitted as `[[proxies]]` entries
+- LuCI syncs common settings and proxies by TOML field name
+
 ## Packages
 
 - `frpc`
