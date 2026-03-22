@@ -5,9 +5,6 @@ if ! uci -q get frps.common.enabled >/dev/null; then
 	uci -q commit frps
 fi
 
-mkdir -p /etc/frp/frps.d
-[ -f /etc/frp/frps.d/status ] || printf '%s\n' uci > /etc/frp/frps.d/status
-
 uci -q batch <<-EOF >/dev/null
 	add ucitrack frps
 	set ucitrack.@frps[-1].init=frps

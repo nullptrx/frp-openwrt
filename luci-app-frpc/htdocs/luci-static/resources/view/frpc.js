@@ -1,6 +1,7 @@
 'use strict';
 'require view';
 'require ui';
+'require fs';
 'require form';
 'require rpc';
 'require tools.widgets as widgets';
@@ -43,6 +44,8 @@ const commonConf = [
 	[form.Flag, 'tls_enable', _('TLS'), _('TLS Enable specifies whether or not TLS should be used when communicating with the server.'), {datatype: 'bool', rmempty: false}],
 	[form.Value, 'heartbeat_interval', _('Heartbeat interval'), _('HeartBeatInterval specifies at what interval heartbeats are sent to the server, in seconds. It is not recommended to change this value.<br />By default, this value is 30.'), {datatype: 'uinteger', rmempty: false}],
 	[form.Value, 'heartbeat_timeout', _('Heartbeat timeout'), _('HeartBeatTimeout specifies the maximum allowed heartbeat response delay before the connection is terminated, in seconds. It is not recommended to change this value.<br />By default, this value is 90.'), {datatype: 'uinteger', rmempty: false}],
+	[form.Button, '_sync_pull', _('Import TOML'), _('Import runtime TOML into UCI and restart the service.'), {inputtitle: _('Import TOML'), inputstyle: 'action important', onclick: pullToml}],
+	[form.Button, '_sync_push', _('Export TOML'), _('Regenerate runtime TOML from UCI and restart the service.'), {inputtitle: _('Export TOML'), inputstyle: 'action important', onclick: pushToml}],
 	[form.DynamicList, '_', _('Additional settings'), _('This list can be used to specify some additional parameters which have not been included in this LuCI.'), {placeholder: 'Key-A=Value-A'}]
 ];
 
@@ -71,6 +74,31 @@ const httpProxyConf = [
 	[form.Value, 'host_header_rewrite', _('Host header rewrite')],
 	// [form.Value, 'headers', _('Headers')], // FIXME
 ];
+
+function runSyncAction(command, action, message) {
+	return fs.exec(command, [action]).then(function(res) {
+		if (!res || res.code !== 0)
+			throw new Error((res && res.stderr) || _('Synchronization failed'));
+
+		ui.addNotification(null, E('p', {}, message));
+		return null;
+	}).catch(function(err) {
+		ui.addNotification(null, E('p', {}, _('Synchronization failed: %s').format(err && err.message ? err.message : err)));
+		throw err;
+	});
+}
+
+function pullToml() {
+	return runSyncAction('/etc/init.d/frpc', 'pull', _('Imported TOML into UCI')).then(function() {
+		location.reload();
+	});
+}
+
+function pushToml() {
+	return runSyncAction('/etc/init.d/frpc', 'push', _('Exported UCI to TOML')).then(function() {
+		location.reload();
+	});
+}
 
 const stcpProxyConf = [
 	[form.ListValue, 'role', _('Role'), undefined, {values: ['server', 'visitor']}],

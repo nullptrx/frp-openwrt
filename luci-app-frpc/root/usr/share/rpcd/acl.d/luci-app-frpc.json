@@ -12,6 +12,9 @@
 			"uci": ["frpc"]
 		},
 		"write": {
+			"file": {
+				"/etc/init.d/frpc": ["exec"]
+			},
 			"uci": ["frpc"]
 		}
 	}

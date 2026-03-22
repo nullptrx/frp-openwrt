@@ -12,6 +12,9 @@
 			"uci": ["frps"]
 		},
 		"write": {
+			"file": {
+				"/etc/init.d/frps": ["exec"]
+			},
 			"uci": ["frps"]
 		}
 	}

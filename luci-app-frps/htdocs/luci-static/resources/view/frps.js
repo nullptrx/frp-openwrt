@@ -1,5 +1,7 @@
 'use strict';
 'require view';
+'require ui';
+'require fs';
 'require form';
 'require rpc';
 'require tools.widgets as widgets';
@@ -48,8 +50,35 @@ const commonConf = [
 	[form.Value, 'allow_ports', _('Allow ports'), _('AllowPorts specifies a set of ports that clients are able to proxy to. If the length of this value is 0, all ports are allowed.<br />By default, this value is an empty set.'), {rmempty: false}],
 	[form.Value, 'max_ports_per_client', _('Max ports per client'), _('MaxPortsPerClient specifies the maximum number of ports a single client may proxy to. If this value is 0, no limit will be applied.<br />By default, this value is 0.'), {datatype: 'uinteger', rmempty: false}],
 	[form.Value, 'heartbeat_timeout', _('Heartbeat timeout'), _('HeartBeatTimeout specifies the maximum time to wait for a heartbeat before terminating the connection. It is not recommended to change this value.<br />By default, this value is 90.'), {datatype: 'uinteger', rmempty: false}],
+	[form.Button, '_sync_pull', _('Import TOML'), _('Import runtime TOML into UCI and restart the service.'), {inputtitle: _('Import TOML'), inputstyle: 'action important', onclick: pullToml}],
+	[form.Button, '_sync_push', _('Export TOML'), _('Regenerate runtime TOML from UCI and restart the service.'), {inputtitle: _('Export TOML'), inputstyle: 'action important', onclick: pushToml}],
 	[form.DynamicList, '_', _('Additional settings'), _('This list can be used to specify some additional parameters which have not been included in this LuCI.'), {placeholder: 'Key-A=Value-A'}]
 ];
+
+function runSyncAction(command, action, message) {
+	return fs.exec(command, [action]).then(function(res) {
+		if (!res || res.code !== 0)
+			throw new Error((res && res.stderr) || _('Synchronization failed'));
+
+		ui.addNotification(null, E('p', {}, message));
+		return null;
+	}).catch(function(err) {
+		ui.addNotification(null, E('p', {}, _('Synchronization failed: %s').format(err && err.message ? err.message : err)));
+		throw err;
+	});
+}
+
+function pullToml() {
+	return runSyncAction('/etc/init.d/frps', 'pull', _('Imported TOML into UCI')).then(function() {
+		location.reload();
+	});
+}
+
+function pushToml() {
+	return runSyncAction('/etc/init.d/frps', 'push', _('Exported UCI to TOML')).then(function() {
+		location.reload();
+	});
+}
 
 function setParams(o, params) {
 	if (!params) return;
