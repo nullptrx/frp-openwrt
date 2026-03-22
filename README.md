@@ -21,9 +21,9 @@ Add this repository as an OpenWrt feed:
 
 ```bash
 echo "src-git frp https://github.com/<your-org>/frp-openwrt.git" >> feeds.conf
-./scripts/feeds update frp
-./scripts/feeds install -a -p frp
+./scripts/feeds update -a
+./scripts/feeds install -d n luci-app-frpc
+./scripts/feeds install -d n luci-app-frps
 ```
 
 Then build the packages as usual with `make menuconfig` and `make`.
-
