@@ -333,10 +333,6 @@ _sync_proxy_section() {
 	printf '%s' "$SYNC_PROXY_SECTION"
 }
 
-_sync_proxy_delete_missing() {
-	return 0
-}
-
 _sync_common_option() {
 	case "$1" in
 		server_addr|server_port|http_proxy|log_file|log_level|log_max_days|disable_log_color|auth_method|token|oidc_client_id|oidc_client_secret|oidc_audience|oidc_token_endpoint_url|admin_addr|admin_port|admin_user|admin_pwd|assets_dir|tcp_mux|user|login_fail_exit|protocol|tls_enable|heartbeat_interval|heartbeat_timeout|allow_ports|conf_inc)
@@ -779,11 +775,9 @@ _sync_common_from_toml() {
 	local current_proxy=""
 	local line key value opt
 	local proxy_name
-	local seen
 
 	[ -f "$file" ] || return 0
 	config_load frpc
-	seen="$(mktemp /tmp/frpc-proxy-seen-XXXXXX)" || return 1
 
 	while IFS= read -r line || [ -n "$line" ]; do
 		line="${line%$'\r'}"
@@ -823,7 +817,6 @@ _sync_common_from_toml() {
 					proxy_name="${value#\"}"
 					proxy_name="${proxy_name%\"}"
 					current_proxy="$(_sync_proxy_section "$proxy_name")" || continue
-					printf '%s\n' "$proxy_name" >> "$seen"
 					continue
 					;;
 				customDomains|locations)
@@ -896,8 +889,6 @@ _sync_common_from_toml() {
 				;;
 		esac
 	done < "$file"
-
-	rm -f "$seen"
 
 	uci -q commit frpc
 }

@@ -6,7 +6,6 @@ if ! uci -q get frps.common.enabled >/dev/null; then
 fi
 
 uci -q batch <<-EOF >/dev/null
-	delete ucitrack.@frps[-1]
 	add ucitrack frps
 	set ucitrack.@frps[-1].init=frps
 	commit ucitrack
