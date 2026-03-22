@@ -6,6 +6,28 @@ USE_PROCD=1
 NAME="frpc"
 BIN="/usr/bin/frpc"
 CONFIG_FOLDER="/var/etc/$NAME"
+SYNC_STATE_DIR="/etc/frp/$NAME.d"
+SYNC_STATE_FILE="$SYNC_STATE_DIR/status"
+
+_read_sync_status() {
+	[ -f "$SYNC_STATE_FILE" ] || return 0
+	_trim_ws "$(cat "$SYNC_STATE_FILE" 2>/dev/null)"
+}
+
+_write_sync_status() {
+	local value="$1"
+
+	mkdir -p "$SYNC_STATE_DIR"
+	if [ -n "$value" ]; then
+		printf '%s\n' "$value" > "$SYNC_STATE_FILE"
+	else
+		: > "$SYNC_STATE_FILE"
+	fi
+}
+
+_clear_sync_status() {
+	_write_sync_status ""
+}
 
 _append_opt() {
 	local file="$1"
@@ -894,8 +916,22 @@ _create_config() {
 }
 
 start_service() {
-	if _runtime_config_is_newer_than_uci "$CONFIG_FOLDER/frpc.toml"; then
-		_sync_common_from_toml "$CONFIG_FOLDER/frpc.toml"
+	local sync_status
+	sync_status="$(_read_sync_status)"
+
+	if [ "$sync_status" = "uci" ]; then
+		_write_sync_status uci
+		if _runtime_config_is_newer_than_uci "$CONFIG_FOLDER/frpc.toml"; then
+			_sync_common_from_toml "$CONFIG_FOLDER/frpc.toml"
+			_clear_sync_status
+		fi
+	else
+		if _runtime_config_is_newer_than_uci "$CONFIG_FOLDER/frpc.toml"; then
+			_sync_common_from_toml "$CONFIG_FOLDER/frpc.toml"
+			_clear_sync_status
+		else
+			_write_sync_status uci
+		fi
 	fi
 
 	config_load frpc
@@ -928,6 +964,7 @@ start_service() {
 }
 
 reload_service() {
+	_write_sync_status uci
 	stop
 	start
 }
