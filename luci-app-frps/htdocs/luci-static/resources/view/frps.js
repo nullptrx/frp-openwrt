@@ -39,9 +39,9 @@ const commonConf = [
 	[form.Value, 'log_max_days', _('Log max days'), _('LogMaxDays specifies the maximum number of days to store log information before deletion. This is only used if LogWay == "file".<br />By default, this value is 0.'), {datatype: 'uinteger'}],
 	[form.Flag, 'disable_log_color', _('Disable log color'), _('DisableLogColor disables log colors when LogWay == "console" when set to true.<br />By default, this value is false.'), {datatype: 'bool', default: 'true'}],
 	[form.ListValue, 'auth_method', _('Authentication method'), _('Auth.method specifies how frps authenticates clients. Token is the default method. OIDC requires matching client settings.'), {values: ['token', 'oidc'], default: 'token'}],
-	[form.Value, 'token', _('Token'), _('Auth.token specifies the authorization token used to authenticate keys received from clients. Clients must have a matching token to be authorized to use the server.<br />By default, this value is "".'), {depends: {auth_method: 'token'}}],
-	[form.Value, 'oidc_issuer', _('OIDC issuer'), _('Auth.oidc.issuer specifies the issuer URL used to verify OIDC tokens.'), {depends: {auth_method: 'oidc'}}],
-	[form.Value, 'oidc_audience', _('OIDC audience'), _('Auth.oidc.audience specifies the audience claim expected in OIDC tokens.'), {depends: {auth_method: 'oidc'}}],
+	[form.Value, 'token', _('Token'), _('Auth.token specifies the authorization token used to authenticate keys received from clients. Clients must have a matching token to be authorized to use the server.<br />By default, this value is "".')],
+	[form.Value, 'oidc_issuer', _('OIDC issuer'), _('Auth.oidc.issuer specifies the issuer URL used to verify OIDC tokens.')],
+	[form.Value, 'oidc_audience', _('OIDC audience'), _('Auth.oidc.audience specifies the audience claim expected in OIDC tokens.')],
 	[form.Value, 'subdomain_host', _('Subdomain host'), _('SubDomainHost specifies the domain that will be attached to sub-domains requested by the client when using Vhost proxying. For example, if this value is set to "frps.com" and the client requested the subdomain "test", the resulting URL would be "test.frps.com".<br />By default, this value is "".')],
 	[form.Flag, 'tcp_mux', _('TCP mux'), _('TcpMux toggles TCP stream multiplexing. This allows multiple requests from a client to share a single TCP connection.<br />By default, this value is true.'), {datatype: 'bool', default: 'true'}],
 	[form.Value, 'custom_404_page', _('Custom 404 page'), _('Custom404Page specifies a path to a custom 404 page to display. If this value is "", a default page will be displayed.<br />By default, this value is "".')],
@@ -94,6 +94,28 @@ function defOpts(s, opts, params) {
 		const o = s.option(opt[0], opt[1], opt[2], opt[3]);
 		setParams(o, opt[4]);
 		setParams(o, params);
+	}
+}
+
+function getOptionRow(root, option) {
+	const field = root.querySelector(`[name$=".${option}"], [id$=".${option}"]`);
+	return field ? field.closest('.cbi-value') : null;
+}
+
+function syncAuthVisibility(root, authMethod) {
+	const showOidc = authMethod === 'oidc';
+	const tokenRow = getOptionRow(root, 'token');
+	const oidcRows = [
+		getOptionRow(root, 'oidc_issuer'),
+		getOptionRow(root, 'oidc_audience')
+	];
+
+	if (tokenRow)
+		tokenRow.style.display = showOidc ? 'none' : '';
+
+	for (const row of oidcRows) {
+		if (row)
+			row.style.display = showOidc ? '' : 'none';
 	}
 }
 
@@ -170,6 +192,16 @@ return view.extend({
 
 		defOpts(s, startupConf);
 
-		return m.render();
+		return m.render().then(function(node) {
+			const authMethod = node.querySelector('[name$=".auth_method"], [id$=".auth_method"]');
+			if (authMethod) {
+				syncAuthVisibility(node, authMethod.value);
+				authMethod.addEventListener('change', function() {
+					syncAuthVisibility(node, authMethod.value);
+				});
+			}
+
+			return node;
+		});
 	}
 });

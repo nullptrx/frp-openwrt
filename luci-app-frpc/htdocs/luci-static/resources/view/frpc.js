@@ -26,11 +26,11 @@ const commonConf = [
 	[form.Value, 'log_max_days', _('Log max days'), _('LogMaxDays specifies the maximum number of days to store log information before deletion. This is only used if LogWay == "file".<br />By default, this value is 0.'), {datatype: 'uinteger'}],
 	[form.Flag, 'disable_log_color', _('Disable log color'), _('DisableLogColor disables log colors when LogWay == "console" when set to true.'), {datatype: 'bool', default: 'false'}],
 	[form.ListValue, 'auth_method', _('Authentication method'), _('Auth.method specifies how frpc authenticates with frps. Token is the default method. OIDC requires matching server settings.'), {values: ['token', 'oidc'], default: 'token'}],
-	[form.Value, 'token', _('Token'), _('Auth.token specifies the authorization token used to create keys to be sent to the server. The server must have a matching token for authorization to succeed. <br />By default, this value is "".'), {depends: {auth_method: 'token'}}],
-	[form.Value, 'oidc_client_id', _('OIDC client ID'), _('Auth.oidc.clientID specifies the OIDC client identifier used to request tokens from the identity provider.'), {depends: {auth_method: 'oidc'}}],
-	[form.Value, 'oidc_client_secret', _('OIDC client secret'), _('Auth.oidc.clientSecret specifies the OIDC client secret used to request tokens from the identity provider.'), {depends: {auth_method: 'oidc'}, password: true}],
-	[form.Value, 'oidc_audience', _('OIDC audience'), _('Auth.oidc.audience specifies the audience claim expected by the identity provider.'), {depends: {auth_method: 'oidc'}}],
-	[form.Value, 'oidc_token_endpoint_url', _('OIDC token endpoint URL'), _('Auth.oidc.tokenEndpointURL specifies the token endpoint used to obtain OIDC tokens.'), {depends: {auth_method: 'oidc'}}],
+	[form.Value, 'token', _('Token'), _('Auth.token specifies the authorization token used to create keys to be sent to the server. The server must have a matching token for authorization to succeed. <br />By default, this value is "".')],
+	[form.Value, 'oidc_client_id', _('OIDC client ID'), _('Auth.oidc.clientID specifies the OIDC client identifier used to request tokens from the identity provider.')],
+	[form.Value, 'oidc_client_secret', _('OIDC client secret'), _('Auth.oidc.clientSecret specifies the OIDC client secret used to request tokens from the identity provider.'), {password: true}],
+	[form.Value, 'oidc_audience', _('OIDC audience'), _('Auth.oidc.audience specifies the audience claim expected by the identity provider.')],
+	[form.Value, 'oidc_token_endpoint_url', _('OIDC token endpoint URL'), _('Auth.oidc.tokenEndpointURL specifies the token endpoint used to obtain OIDC tokens.')],
 	[form.Value, 'admin_addr', _('Admin address'), _('AdminAddr specifies the address that the admin server binds to.<br />By default, this value is "0.0.0.0".'), {datatype: 'ipaddr'}],
 	[form.Value, 'admin_port', _('Admin port'), _('AdminPort specifies the port for the admin server to listen on. If this value is 0, the admin server will not be started.<br />By default, this value is 0.'), {datatype: 'port'}],
 	[form.Value, 'admin_user', _('Admin user'), _('AdminUser specifies the username that the admin server will use for login.<br />By default, this value is "admin".')],
@@ -144,6 +144,30 @@ function defOpts(s, opts, params) {
 	}
 }
 
+function getOptionRow(root, option) {
+	const field = root.querySelector(`[name$=".${option}"], [id$=".${option}"]`);
+	return field ? field.closest('.cbi-value') : null;
+}
+
+function syncAuthVisibility(root, authMethod) {
+	const showOidc = authMethod === 'oidc';
+	const tokenRow = getOptionRow(root, 'token');
+	const oidcRows = [
+		getOptionRow(root, 'oidc_client_id'),
+		getOptionRow(root, 'oidc_client_secret'),
+		getOptionRow(root, 'oidc_audience'),
+		getOptionRow(root, 'oidc_token_endpoint_url')
+	];
+
+	if (tokenRow)
+		tokenRow.style.display = showOidc ? 'none' : '';
+
+	for (const row of oidcRows) {
+		if (row)
+			row.style.display = showOidc ? '' : 'none';
+	}
+}
+
 const callServiceList = rpc.declare({
 	object: 'service',
 	method: 'list',
@@ -223,7 +247,7 @@ return view.extend({
 		s.sortable = true;
 		s.addbtntitle = _('Add new proxy...');
 
-		s.filter = function(s) { return s !== 'common'; };
+		s.filter = function(section_id) { return section_id !== 'common'; };
 
 		s.tab('general', _('General Settings'));
 		s.tab('http', _('HTTP Settings'));
@@ -238,8 +262,8 @@ return view.extend({
 		o.depends('type', 'tcp');
 		o.depends('type', 'udp');
 		o.cfgvalue = function() {
-			const  v = this.super('cfgvalue', arguments);
-			return v&&v!='0'?v:'#';
+			const v = this.super('cfgvalue', arguments);
+			return v && v != '0' ? v : '#';
 		};
 
 		defTabOpts(s, 'general', baseProxyConf, {modalonly: true});
@@ -259,6 +283,16 @@ return view.extend({
 		// Plugin
 		defTabOpts(s, 'plugin', pluginConf, {modalonly: true});
 
-		return m.render();
+		return m.render().then(function(node) {
+			const authMethod = node.querySelector('[name$=".auth_method"], [id$=".auth_method"]');
+			if (authMethod) {
+				syncAuthVisibility(node, authMethod.value);
+				authMethod.addEventListener('change', function() {
+					syncAuthVisibility(node, authMethod.value);
+				});
+			}
+
+			return node;
+		});
 	}
 });
