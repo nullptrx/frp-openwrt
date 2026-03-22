@@ -75,6 +75,8 @@ function setParams(o, params) {
 			o[key] = params[key];
 		}
 	}
+	if (params.optional === true && params.rmempty === undefined && o.rmempty === undefined)
+		o.rmempty = false;
 	if (params['datatype'] === 'bool') {
 		o.enabled = 'true';
 		o.disabled = 'false';
@@ -183,7 +185,7 @@ return view.extend({
 		s.tab('common', _('Common settings'));
 		s.tab('init', _('Startup settings'));
 
-		defTabOpts(s, 'common', commonConf, {optional: true});
+		defTabOpts(s, 'common', commonConf, {optional: true, rmempty: false});
 
 		o = s.taboption('init', form.SectionValue, 'init', form.TypedSection, 'init', _('Startup settings'));
 		s = o.subsection;
