@@ -38,8 +38,6 @@ Then select the packages in `make menuconfig`, and build them with:
 ```bash
 make package/luci-app-frpc/{clean,compile} V=s
 make package/luci-app-frps/{clean,compile} V=s
-make package/luci-i18n-frpc-zh-cn/{clean,compile} V=s
-make package/luci-i18n-frps-zh-cn/{clean,compile} V=s
 ```
 
 The generated packages are written under `bin/packages/*/frp/`.

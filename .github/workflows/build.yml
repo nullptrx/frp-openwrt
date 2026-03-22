@@ -159,8 +159,6 @@ jobs:
           cd "$SDK_DIR"
           make package/luci-app-frpc/{clean,compile} -j$(nproc) V=s
           make package/luci-app-frps/{clean,compile} -j$(nproc) V=s
-          make package/luci-i18n-frpc-zh-cn/{clean,compile} -j$(nproc) V=s
-          make package/luci-i18n-frps-zh-cn/{clean,compile} -j$(nproc) V=s
 
       - name: Collect luci packages
         run: |
