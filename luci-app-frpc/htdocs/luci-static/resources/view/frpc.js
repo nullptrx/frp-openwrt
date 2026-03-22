@@ -44,8 +44,6 @@ const commonConf = [
 	[form.Flag, 'tls_enable', _('TLS'), _('TLS Enable specifies whether or not TLS should be used when communicating with the server.'), {datatype: 'bool', rmempty: false}],
 	[form.Value, 'heartbeat_interval', _('Heartbeat interval'), _('HeartBeatInterval specifies at what interval heartbeats are sent to the server, in seconds. It is not recommended to change this value.<br />By default, this value is 30.'), {datatype: 'uinteger', rmempty: false}],
 	[form.Value, 'heartbeat_timeout', _('Heartbeat timeout'), _('HeartBeatTimeout specifies the maximum allowed heartbeat response delay before the connection is terminated, in seconds. It is not recommended to change this value.<br />By default, this value is 90.'), {datatype: 'uinteger', rmempty: false}],
-	[form.ButtonValue, '_sync_pull', _('Import TOML'), _('Import runtime TOML into UCI and restart the service.'), {inputtitle: _('Import TOML'), inputstyle: 'action important', onclick: pullToml}],
-	[form.ButtonValue, '_sync_push', _('Export TOML'), _('Regenerate runtime TOML from UCI and restart the service.'), {inputtitle: _('Export TOML'), inputstyle: 'action important', onclick: pushToml}],
 	[form.DynamicList, '_', _('Additional settings'), _('This list can be used to specify some additional parameters which have not been included in this LuCI.'), {placeholder: 'Key-A=Value-A'}]
 ];
 
@@ -237,6 +235,28 @@ return view.extend({
 		s.tab('init', _('Startup Settings'));
 
 		defTabOpts(s, 'common', commonConf, {optional: true});
+
+		let sync = m.section(form.TypedSection, '_sync');
+		sync.anonymous = true;
+		sync.render = function() {
+			return E('div', { 'class': 'cbi-section' }, [
+				E('h3', {}, [_('Configuration sync')]),
+				E('div', { 'class': 'cbi-value' }, [
+					E('label', { 'class': 'cbi-value-title' }, [_('Sync actions')]),
+					E('div', { 'class': 'cbi-value-field' }, [
+						E('button', {
+							'class': 'btn cbi-button cbi-button-action important',
+							'click': ui.createHandlerFn(null, () => pullToml())
+						}, [_('Import TOML')]),
+						' ',
+						E('button', {
+							'class': 'btn cbi-button cbi-button-action important',
+							'click': ui.createHandlerFn(null, () => pushToml())
+						}, [_('Export TOML')])
+					])
+				])
+			]);
+		};
 
 		o = s.taboption('init', form.SectionValue, 'init', form.TypedSection, 'init', _('Startup Settings'));
 		s = o.subsection;
