@@ -394,10 +394,10 @@ _sync_common_option() {
 		transport.tls.enable)
 			printf '%s' 'tls_enable'
 			;;
-		heartbeatInterval)
+		transport.heartbeatInterval)
 			printf '%s' 'heartbeat_interval'
 			;;
-		heartbeatTimeout)
+		transport.heartbeatTimeout)
 			printf '%s' 'heartbeat_timeout'
 			;;
 		*)
@@ -483,8 +483,8 @@ _append_common() {
 	_toml_write_bool "$file" loginFailExit "$login_fail_exit"
 	_toml_write_string "$file" transport.protocol "$protocol"
 	_toml_write_bool "$file" transport.tls.enable "$tls_enable"
-	_toml_write_int "$file" heartbeatInterval "$heartbeat_interval"
-	_toml_write_int "$file" heartbeatTimeout "$heartbeat_timeout"
+	_toml_write_int "$file" transport.heartbeatInterval "$heartbeat_interval"
+	_toml_write_int "$file" transport.heartbeatTimeout "$heartbeat_timeout"
 
 	TOML_LIST=
 	config_list_foreach main conf_inc _toml_collect_include_item
@@ -850,7 +850,7 @@ _sync_common_from_toml() {
 
 		opt="$(_sync_common_option "$key")" || continue
 		case "$key" in
-			custom_404_page|serverAddr|serverPort|transport.proxyURL|log.to|log.level|webServer.addr|webServer.user|webServer.password|webServer.assetsDir|user|transport.protocol|heartbeatInterval|heartbeatTimeout|auth.method|auth.token|auth.oidc.clientID|auth.oidc.clientSecret|auth.oidc.audience|auth.oidc.tokenEndpointURL)
+			custom_404_page|serverAddr|serverPort|transport.proxyURL|log.to|log.level|webServer.addr|webServer.user|webServer.password|webServer.assetsDir|user|transport.protocol|transport.heartbeatInterval|transport.heartbeatTimeout|auth.method|auth.token|auth.oidc.clientID|auth.oidc.clientSecret|auth.oidc.audience|auth.oidc.tokenEndpointURL)
 				;;
 		esac
 

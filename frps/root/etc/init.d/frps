@@ -200,7 +200,7 @@ _append_common() {
 	_toml_write_string "$file" custom404Page "$custom_404_page"
 	_toml_write_allow_ports "$file" "$allow_ports"
 	_toml_write_int "$file" maxPortsPerClient "$max_ports_per_client"
-	_toml_write_int "$file" heartbeatTimeout "$heartbeat_timeout"
+	_toml_write_int "$file" transport.heartbeatTimeout "$heartbeat_timeout"
 
 	TOML_LIST=
 	config_list_foreach main conf_inc _toml_collect_item
@@ -302,7 +302,7 @@ _sync_common_option() {
 		maxPortsPerClient)
 			printf '%s' 'max_ports_per_client'
 			;;
-		heartbeatTimeout)
+		transport.heartbeatTimeout)
 			printf '%s' 'heartbeat_timeout'
 			;;
 		*)
