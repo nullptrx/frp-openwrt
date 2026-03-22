@@ -20,7 +20,12 @@ This repository follows the same feed-style layout used by `nps-openwrt`:
 Add this repository as an OpenWrt feed:
 
 ```bash
+# Local checkout
+echo "src-link frp /path/to/frp-openwrt" >> feeds.conf
+
+# Remote repository
 echo "src-git frp https://github.com/<your-org>/frp-openwrt.git" >> feeds.conf
+
 ./scripts/feeds update -a
 ./scripts/feeds install -d n luci-app-frpc
 ./scripts/feeds install -d n luci-app-frps
