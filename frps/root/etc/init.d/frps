@@ -311,7 +311,7 @@ _sync_common_option() {
 	esac
 }
 
-_config_is_newer_than_uci() {
+_runtime_config_is_newer_than_uci() {
 	local file="$1"
 	local uci_file="/etc/config/$NAME"
 	local file_mtime uci_mtime
@@ -323,6 +323,15 @@ _config_is_newer_than_uci() {
 	uci_mtime="$(stat -c '%Y' "$uci_file" 2>/dev/null)" || return 0
 
 	[ "$file_mtime" -gt "$uci_mtime" ]
+}
+
+_align_runtime_config_mtime() {
+	local file="$1"
+	local uci_file="/etc/config/$NAME"
+
+	[ -f "$file" ] || return 0
+	[ -f "$uci_file" ] || return 0
+	touch -r "$uci_file" "$file"
 }
 
 _sync_main_includes_from_toml() {
@@ -491,7 +500,7 @@ _create_config() {
 }
 
 start_service() {
-	if _config_is_newer_than_uci "$CONFIG_FOLDER/frps.toml"; then
+	if _runtime_config_is_newer_than_uci "$CONFIG_FOLDER/frps.toml"; then
 		_sync_common_from_toml "$CONFIG_FOLDER/frps.toml"
 	fi
 
@@ -502,6 +511,7 @@ start_service() {
 
 	local config_file="$CONFIG_FOLDER/frps.toml"
 	_create_config "$config_file"
+	_align_runtime_config_mtime "$config_file"
 
 	procd_open_instance "$NAME"
 	procd_set_param command "$BIN" -c "$config_file"
