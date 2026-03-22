@@ -329,7 +329,6 @@ _sync_main_includes_from_toml() {
 	local value="$1"
 	local item old_ifs
 
-	uci -q delete "frps.main.conf_inc"
 	[ -n "$value" ] || return 0
 
 	old_ifs="$IFS"
@@ -374,11 +373,8 @@ _sync_allow_ports_from_toml() {
 	done
 	IFS="$old_ifs"
 
-	if [ -n "$result" ]; then
-		uci -q set "frps.common.allow_ports=$result"
-	else
-		uci -q delete "frps.common.allow_ports"
-	fi
+	[ -n "$result" ] || return 0
+	uci -q set "frps.common.allow_ports=$result"
 }
 
 _sync_proxy_delete_missing() {
@@ -463,7 +459,7 @@ _sync_common_from_toml() {
 		opt="$(_sync_common_option "$key")" || continue
 		case "$value" in
 			true|false)
-				uci -q set "frps.common.$opt=$value"
+				[ -n "$value" ] && uci -q set "frps.common.$opt=$value"
 				;;
 			\"*\")
 				value="${value#\"}"
@@ -471,12 +467,10 @@ _sync_common_from_toml() {
 				uci -q set "frps.common.$opt=$value"
 				;;
 			*)
-				uci -q set "frps.common.$opt=$value"
+				[ -n "$value" ] && uci -q set "frps.common.$opt=$value"
 				;;
 		esac
 	done < "$file"
-
-	config_foreach _sync_proxy_delete_missing conf "$seen"
 	rm -f "$seen"
 
 	uci -q commit frps

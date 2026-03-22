@@ -312,15 +312,7 @@ _sync_proxy_section() {
 }
 
 _sync_proxy_delete_missing() {
-	local section="$1"
-	local seen="$2"
-	local name
-
-	config_get name "$section" name
-	[ "$name" = "common" ] && return 0
-	[ -n "$name" ] || return 0
-
-	grep -Fxq -- "$name" "$seen" || uci -q delete "frpc.$section"
+	return 0
 }
 
 _sync_common_option() {
@@ -701,7 +693,6 @@ _sync_main_includes_from_toml() {
 	local value="$1"
 	local item old_ifs
 
-	uci -q delete "frpc.main.conf_inc"
 	[ -n "$value" ] || return 0
 
 	old_ifs="$IFS"
@@ -747,11 +738,8 @@ _sync_allow_ports_from_toml() {
 	done
 	IFS="$old_ifs"
 
-	if [ -n "$result" ]; then
-		uci -q set "frpc.common.allow_ports=$result"
-	else
-		uci -q delete "frpc.common.allow_ports"
-	fi
+	[ -n "$result" ] || return 0
+	uci -q set "frpc.common.allow_ports=$result"
 }
 
 _sync_common_from_toml() {
@@ -832,7 +820,7 @@ _sync_common_from_toml() {
 					uci -q set "frpc.$current_proxy.$opt=$value"
 					;;
 				*)
-					uci -q set "frpc.$current_proxy.$opt=$value"
+					[ -n "$value" ] && uci -q set "frpc.$current_proxy.$opt=$value"
 					;;
 			esac
 			continue
@@ -873,12 +861,11 @@ _sync_common_from_toml() {
 				esac
 				;;
 			*)
-				uci -q set "frpc.common.$opt=$value"
+				[ -n "$value" ] && uci -q set "frpc.common.$opt=$value"
 				;;
 		esac
 	done < "$file"
 
-	config_foreach _sync_proxy_delete_missing conf "$seen"
 	rm -f "$seen"
 
 	uci -q commit frpc
