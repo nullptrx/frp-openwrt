@@ -12,7 +12,7 @@ const startupConf = [
 	[widgets.GroupSelect, 'group', _('Run daemon as group')],
 	[form.Flag, 'respawn', _('Respawn when crashed')],
 	[form.DynamicList, 'env', _('Environment variable'), _('OS environments pass to frp for config file template, see %s'.format(`<a href="https://github.com/fatedier/frp#configuration-file-template">frp README</a>`)), {placeholder: 'ENV_NAME=value'}],
-	[form.DynamicList, 'conf_inc', _('Additional configs'), _('Config files include in temporary config file'), {placeholder: '/etc/frp/frps.d/frps_full.ini'}]
+	[form.DynamicList, 'conf_inc', _('Additional configs'), _('Config files include in temporary config file'), {placeholder: '/etc/frp/frps.d/frps_full.toml'}]
 ];
 
 const commonConf = [
