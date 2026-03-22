@@ -394,15 +394,65 @@ msgid ""
 "been included in this LuCI."
 msgstr ""
 
-#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:27
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:28
+msgid "Authentication method"
+msgstr ""
+
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:28
+msgid ""
+"Auth.method specifies how frpc authenticates with frps. Token is the "
+"default method. OIDC requires matching server settings."
+msgstr ""
+
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:29
 msgid "Token"
 msgstr ""
 
-#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:27
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:29
 msgid ""
-"Token specifies the authorization token used to create keys to be sent to "
-"the server. The server must have a matching token for authorization to "
+"Auth.token specifies the authorization token used to create keys to be sent "
+"to the server. The server must have a matching token for authorization to "
 "succeed. <br />By default, this value is \"\"."
+msgstr ""
+
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:30
+msgid "OIDC client ID"
+msgstr ""
+
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:30
+msgid ""
+"Auth.oidc.clientID specifies the OIDC client identifier used to request "
+"tokens from the identity provider."
+msgstr ""
+
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:31
+msgid "OIDC client secret"
+msgstr ""
+
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:31
+msgid ""
+"Auth.oidc.clientSecret specifies the OIDC client secret used to request "
+"tokens from the identity provider."
+msgstr ""
+
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:32
+msgid "OIDC audience"
+msgstr ""
+
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:32
+msgid ""
+"Auth.oidc.audience specifies the audience claim expected by the identity "
+"provider."
+msgstr ""
+
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:33
+msgid "OIDC token endpoint URL"
+msgstr ""
+
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:33
+msgid ""
+"Auth.oidc.tokenEndpointURL specifies the token endpoint used to obtain OIDC "
+"tokens."
 msgstr ""
 
 #: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:83

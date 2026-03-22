@@ -131,6 +131,8 @@ jobs:
 
           echo "CONFIG_PACKAGE_luci-app-frpc=m" > .config
           echo "CONFIG_PACKAGE_luci-app-frps=m" >> .config
+          echo "CONFIG_PACKAGE_luci-i18n-frpc-zh-cn=m" >> .config
+          echo "CONFIG_PACKAGE_luci-i18n-frps-zh-cn=m" >> .config
           ./scripts/feeds install -d n luci-app-frpc
           ./scripts/feeds install -d n luci-app-frps
           make defconfig
@@ -148,6 +150,8 @@ jobs:
           echo "CONFIG_LUCI_LANG_zh_Hans=y" >> .config
           echo "CONFIG_PACKAGE_luci-app-frpc=m" >> .config
           echo "CONFIG_PACKAGE_luci-app-frps=m" >> .config
+          echo "CONFIG_PACKAGE_luci-i18n-frpc-zh-cn=m" >> .config
+          echo "CONFIG_PACKAGE_luci-i18n-frps-zh-cn=m" >> .config
           make defconfig
 
       - name: Build package
@@ -155,13 +159,20 @@ jobs:
           cd "$SDK_DIR"
           make package/luci-app-frpc/{clean,compile} -j$(nproc) V=s
           make package/luci-app-frps/{clean,compile} -j$(nproc) V=s
+          make package/luci-i18n-frpc-zh-cn/{clean,compile} -j$(nproc) V=s
+          make package/luci-i18n-frps-zh-cn/{clean,compile} -j$(nproc) V=s
 
       - name: Collect luci packages
         run: |
           cd "$SDK_DIR"
           mkdir -p "$RELEASE_DIR/luci/${{ matrix.pkg_ext }}"
           shopt -s nullglob
-          files=(bin/packages/*/frp/luci-app-frpc*.${{ matrix.pkg_ext }} bin/packages/*/frp/luci-app-frps*.${{ matrix.pkg_ext }})
+          files=(
+            bin/packages/*/frp/luci-app-frpc*.${{ matrix.pkg_ext }}
+            bin/packages/*/frp/luci-app-frps*.${{ matrix.pkg_ext }}
+            bin/packages/*/frp/luci-i18n-frpc-zh-cn*.${{ matrix.pkg_ext }}
+            bin/packages/*/frp/luci-i18n-frps-zh-cn*.${{ matrix.pkg_ext }}
+          )
           if [ ${#files[@]} -eq 0 ]; then
             echo "No luci packages found (*.${{ matrix.pkg_ext }})" >&2
             exit 1

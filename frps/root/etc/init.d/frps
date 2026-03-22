@@ -13,7 +13,12 @@ _append_opt() {
 
 	local key value
 	for key in "$@"; do
-		eval "value=\${$key}"
+		if printf '%s' "$key" | grep -q '='; then
+			value="${key#*=}"
+			key="${key%%=*}"
+		else
+			eval "value=\${$key}"
+		fi
 		[ -n "$value" ] || continue
 
 		if printf '%s' "$key" | grep -qE 'addr|ip' && printf '%s' "$value" | grep -q ':'; then
@@ -49,7 +54,10 @@ _append_common() {
 	config_get log_level "$section" log_level
 	config_get log_max_days "$section" log_max_days
 	config_get disable_log_color "$section" disable_log_color
+	config_get auth_method "$section" auth_method token
 	config_get token "$section" token
+	config_get oidc_issuer "$section" oidc_issuer
+	config_get oidc_audience "$section" oidc_audience
 	config_get subdomain_host "$section" subdomain_host
 	config_get tcp_mux "$section" tcp_mux
 	config_get custom_404_page "$section" custom_404_page
@@ -62,9 +70,20 @@ _append_common() {
 		proxy_bind_addr vhost_http_port vhost_https_port vhost_http_timeout \
 		dashboard_addr dashboard_port dashboard_user dashboard_pwd \
 		dashboard_tls_mode dashboard_tls_cert_file dashboard_tls_key_file \
-		assets_dir log_file log_level log_max_days disable_log_color token \
-		subdomain_host tcp_mux custom_404_page allow_ports \
-		max_ports_per_client heartbeat_timeout
+		assets_dir log_file log_level log_max_days disable_log_color \
+		auth.method=auth_method subdomain_host tcp_mux custom_404_page \
+		allow_ports max_ports_per_client heartbeat_timeout
+
+	case "$auth_method" in
+		oidc)
+			_append_opt "$file" \
+				auth.oidc.issuer=oidc_issuer \
+				auth.oidc.audience=oidc_audience
+			;;
+		*)
+			_append_opt "$file" token
+			;;
+	esac
 }
 
 _load_env() {

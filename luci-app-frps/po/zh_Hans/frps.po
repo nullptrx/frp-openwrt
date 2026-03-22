@@ -371,18 +371,48 @@ msgid ""
 "been included in this LuCI."
 msgstr "此列表可用于指定此LuCI中未包括的一些其他参数。"
 
-#: applications/luci-app-frps/htdocs/luci-static/resources/view/frps.js:40
+#: applications/luci-app-frps/htdocs/luci-static/resources/view/frps.js:41
+msgid "Authentication method"
+msgstr "认证方式"
+
+#: applications/luci-app-frps/htdocs/luci-static/resources/view/frps.js:41
+msgid ""
+"Auth.method specifies how frps authenticates clients. Token is the default "
+"method. OIDC requires matching client settings."
+msgstr ""
+"Auth.method 指定 frps 对客户端进行认证的方式。Token 是默认方式。OIDC 需要与"
+"客户端设置匹配。"
+
+#: applications/luci-app-frps/htdocs/luci-static/resources/view/frps.js:42
 msgid "Token"
 msgstr "令牌"
 
-#: applications/luci-app-frps/htdocs/luci-static/resources/view/frps.js:40
+#: applications/luci-app-frps/htdocs/luci-static/resources/view/frps.js:42
 msgid ""
-"Token specifies the authorization token used to authenticate keys received "
-"from clients. Clients must have a matching token to be authorized to use the "
-"server.<br />By default, this value is \"\"."
+"Auth.token specifies the authorization token used to authenticate keys "
+"received from clients. Clients must have a matching token to be authorized "
+"to use the server.<br />By default, this value is \"\"."
 msgstr ""
-"令牌指定用于对从客户端接收的密钥进行验证的授权令牌。客户端必须有匹配的令牌才"
-"能被授权使用服务器。<br />该值默认为 \"\"。"
+"Auth.token 指定用于对从客户端接收的密钥进行验证的授权令牌。客户端必须有匹配"
+"的令牌才能被授权使用服务器。<br />该值默认为 \"\"。"
+
+#: applications/luci-app-frps/htdocs/luci-static/resources/view/frps.js:43
+msgid "OIDC issuer"
+msgstr "OIDC 签发者"
+
+#: applications/luci-app-frps/htdocs/luci-static/resources/view/frps.js:43
+msgid ""
+"Auth.oidc.issuer specifies the issuer URL used to verify OIDC tokens."
+msgstr "Auth.oidc.issuer 指定用于验证 OIDC 令牌的签发者 URL。"
+
+#: applications/luci-app-frps/htdocs/luci-static/resources/view/frps.js:44
+msgid "OIDC audience"
+msgstr "OIDC 受众"
+
+#: applications/luci-app-frps/htdocs/luci-static/resources/view/frps.js:44
+msgid ""
+"Auth.oidc.audience specifies the audience claim expected in OIDC tokens."
+msgstr "Auth.oidc.audience 指定 OIDC 令牌中期望的 audience 声明。"
 
 #: applications/luci-app-frps/htdocs/luci-static/resources/view/frps.js:21
 msgid "UDP bind port"

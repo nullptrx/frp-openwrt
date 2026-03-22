@@ -432,18 +432,72 @@ msgid ""
 "been included in this LuCI."
 msgstr "此列表可用于指定此LuCI中未包括的一些其他参数。"
 
-#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:27
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:28
+msgid "Authentication method"
+msgstr "认证方式"
+
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:28
+msgid ""
+"Auth.method specifies how frpc authenticates with frps. Token is the "
+"default method. OIDC requires matching server settings."
+msgstr ""
+"Auth.method 指定 frpc 与 frps 的认证方式。Token 是默认方式。OIDC 需要与服务"
+"端设置匹配。"
+
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:29
 msgid "Token"
 msgstr "令牌"
 
-#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:27
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:29
 msgid ""
-"Token specifies the authorization token used to create keys to be sent to "
-"the server. The server must have a matching token for authorization to "
+"Auth.token specifies the authorization token used to create keys to be sent "
+"to the server. The server must have a matching token for authorization to "
 "succeed. <br />By default, this value is \"\"."
 msgstr ""
-"Token 指定用于创建要发送到服务器的密钥的授权令牌。服务器必须具有匹配的令牌才"
-"能成功进行授权。<br />默认情况下，此值为空。"
+"Auth.token 指定用于创建要发送到服务器的密钥的授权令牌。服务器必须具有匹配的"
+"令牌才能成功进行授权。<br />默认情况下，此值为空。"
+
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:30
+msgid "OIDC client ID"
+msgstr "OIDC 客户端 ID"
+
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:30
+msgid ""
+"Auth.oidc.clientID specifies the OIDC client identifier used to request "
+"tokens from the identity provider."
+msgstr ""
+"Auth.oidc.clientID 指定用于向身份提供方请求令牌的 OIDC 客户端标识符。"
+
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:31
+msgid "OIDC client secret"
+msgstr "OIDC 客户端密钥"
+
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:31
+msgid ""
+"Auth.oidc.clientSecret specifies the OIDC client secret used to request "
+"tokens from the identity provider."
+msgstr ""
+"Auth.oidc.clientSecret 指定用于向身份提供方请求令牌的 OIDC 客户端密钥。"
+
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:32
+msgid "OIDC audience"
+msgstr "OIDC 受众"
+
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:32
+msgid ""
+"Auth.oidc.audience specifies the audience claim expected by the identity "
+"provider."
+msgstr "Auth.oidc.audience 指定身份提供方期望的 audience 声明。"
+
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:33
+msgid "OIDC token endpoint URL"
+msgstr "OIDC 令牌端点 URL"
+
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:33
+msgid ""
+"Auth.oidc.tokenEndpointURL specifies the token endpoint used to obtain OIDC "
+"tokens."
+msgstr "Auth.oidc.tokenEndpointURL 指定用于获取 OIDC 令牌的令牌端点。"
 
 #: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:83
 msgid "Unix domain socket path"

@@ -13,7 +13,12 @@ _append_opt() {
 
 	local key value
 	for key in "$@"; do
-		eval "value=\${$key}"
+		if printf '%s' "$key" | grep -q '='; then
+			value="${key#*=}"
+			key="${key%%=*}"
+		else
+			eval "value=\${$key}"
+		fi
 		[ -n "$value" ] || continue
 
 		if printf '%s' "$key" | grep -qE 'addr|ip' && printf '%s' "$value" | grep -q ':'; then
@@ -47,7 +52,12 @@ _append_common() {
 	config_get log_level "$section" log_level
 	config_get log_max_days "$section" log_max_days
 	config_get disable_log_color "$section" disable_log_color
+	config_get auth_method "$section" auth_method token
 	config_get token "$section" token
+	config_get oidc_client_id "$section" oidc_client_id
+	config_get oidc_client_secret "$section" oidc_client_secret
+	config_get oidc_audience "$section" oidc_audience
+	config_get oidc_token_endpoint_url "$section" oidc_token_endpoint_url
 	config_get admin_addr "$section" admin_addr
 	config_get admin_port "$section" admin_port
 	config_get admin_user "$section" admin_user
@@ -63,9 +73,22 @@ _append_common() {
 
 	_append_opt "$file" \
 		server_addr server_port http_proxy log_file log_level log_max_days \
-		disable_log_color token admin_addr admin_port admin_user admin_pwd \
-		assets_dir tcp_mux user login_fail_exit protocol tls_enable \
-		heartbeat_interval heartbeat_timeout
+		disable_log_color auth.method=auth_method admin_addr admin_port \
+		admin_user admin_pwd assets_dir tcp_mux user login_fail_exit \
+		protocol tls_enable heartbeat_interval heartbeat_timeout
+
+	case "$auth_method" in
+		oidc)
+			_append_opt "$file" \
+				auth.oidc.clientID=oidc_client_id \
+				auth.oidc.clientSecret=oidc_client_secret \
+				auth.oidc.audience=oidc_audience \
+				auth.oidc.tokenEndpointURL=oidc_token_endpoint_url
+			;;
+		*)
+			_append_opt "$file" token
+			;;
+	esac
 }
 
 _append_proxy() {

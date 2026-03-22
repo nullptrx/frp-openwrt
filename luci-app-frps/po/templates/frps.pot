@@ -323,15 +323,43 @@ msgid ""
 "been included in this LuCI."
 msgstr ""
 
-#: applications/luci-app-frps/htdocs/luci-static/resources/view/frps.js:40
+#: applications/luci-app-frps/htdocs/luci-static/resources/view/frps.js:41
+msgid "Authentication method"
+msgstr ""
+
+#: applications/luci-app-frps/htdocs/luci-static/resources/view/frps.js:41
+msgid ""
+"Auth.method specifies how frps authenticates clients. Token is the default "
+"method. OIDC requires matching client settings."
+msgstr ""
+
+#: applications/luci-app-frps/htdocs/luci-static/resources/view/frps.js:42
 msgid "Token"
 msgstr ""
 
-#: applications/luci-app-frps/htdocs/luci-static/resources/view/frps.js:40
+#: applications/luci-app-frps/htdocs/luci-static/resources/view/frps.js:42
 msgid ""
-"Token specifies the authorization token used to authenticate keys received "
-"from clients. Clients must have a matching token to be authorized to use the "
-"server.<br />By default, this value is \"\"."
+"Auth.token specifies the authorization token used to authenticate keys "
+"received from clients. Clients must have a matching token to be authorized "
+"to use the server.<br />By default, this value is \"\"."
+msgstr ""
+
+#: applications/luci-app-frps/htdocs/luci-static/resources/view/frps.js:43
+msgid "OIDC issuer"
+msgstr ""
+
+#: applications/luci-app-frps/htdocs/luci-static/resources/view/frps.js:43
+msgid ""
+"Auth.oidc.issuer specifies the issuer URL used to verify OIDC tokens."
+msgstr ""
+
+#: applications/luci-app-frps/htdocs/luci-static/resources/view/frps.js:44
+msgid "OIDC audience"
+msgstr ""
+
+#: applications/luci-app-frps/htdocs/luci-static/resources/view/frps.js:44
+msgid ""
+"Auth.oidc.audience specifies the audience claim expected in OIDC tokens."
 msgstr ""
 
 #: applications/luci-app-frps/htdocs/luci-static/resources/view/frps.js:21
