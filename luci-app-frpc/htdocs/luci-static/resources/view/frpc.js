@@ -245,11 +245,13 @@ return view.extend({
 					E('label', { 'class': 'cbi-value-title' }, [_('Sync actions')]),
 					E('div', { 'class': 'cbi-value-field' }, [
 						E('button', {
+							type: 'button',
 							'class': 'btn cbi-button cbi-button-action important',
 							'click': ui.createHandlerFn(null, () => pullToml())
 						}, [_('Import TOML')]),
 						' ',
 						E('button', {
+							type: 'button',
 							'class': 'btn cbi-button cbi-button-action important',
 							'click': ui.createHandlerFn(null, () => pushToml())
 						}, [_('Export TOML')])
