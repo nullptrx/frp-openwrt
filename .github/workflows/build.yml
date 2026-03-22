@@ -1,0 +1,281 @@
+name: Build OpenWrt
+
+on:
+  push:
+    paths:
+      - frp.ver
+      - frpc/**
+      - frps/**
+      - luci-app-frpc/**
+      - luci-app-frps/**
+  workflow_dispatch:
+  repository_dispatch:
+    types: [trigger-build]
+
+jobs:
+  prepare_release:
+    name: Prepare release
+    runs-on: ubuntu-22.04
+    outputs:
+      frp_version: ${{ steps.get_version.outputs.frp_version }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get version
+        id: get_version
+        run: |
+          version="$(cat frp.ver | xargs)"
+          echo "frp_version=$version" >> "$GITHUB_OUTPUT"
+          echo "FRP Version: $version"
+
+      - name: Create release first
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.get_version.outputs.frp_version }}
+          prerelease: false
+          update_existing_release: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build_luci:
+    name: Build luci (${{ matrix.pkg_ext }}, ${{ matrix.sdk_ver }})
+    needs: prepare_release
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - pkg_ext: "ipk"
+            sdk_ver: "24.10.5"
+            luci_ver: "24.10"
+            sdk_url: "https://downloads.openwrt.org/releases/24.10.5/targets/x86/64/openwrt-sdk-24.10.5-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst"
+          - pkg_ext: "apk"
+            sdk_ver: "snapshot"
+            luci_ver: "snapshot"
+            sdk_url: "https://downloads.openwrt.org/snapshots/targets/x86/64/openwrt-sdk-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          sudo -E rm -rf /usr/share/dotnet /etc/mysql /etc/php /etc/apt/sources.list.d /usr/local/lib/android
+          sudo -E apt-get -qq update
+          sudo -E apt-get -qq install build-essential clang flex bison g++ gawk gcc-multilib g++-multilib gettext git libncurses-dev libssl-dev python3-distutils python3-setuptools rsync swig unzip zlib1g-dev file wget xz-utils zstd gettext-base
+          sudo -E apt-get -qq autoremove --purge
+          sudo -E apt-get -qq clean
+
+      - name: Cache OpenWrt SDK
+        id: cache-sdk
+        uses: actions/cache@v4
+        with:
+          path: cache-sdk
+          key: openwrt-sdk-${{ matrix.sdk_ver }}-amd64-${{ matrix.pkg_ext }}
+
+      - name: Download SDK
+        if: steps.cache-sdk.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p cache-sdk
+          cd cache-sdk
+          wget "${{ matrix.sdk_url }}"
+
+      - name: Extract SDK
+        run: |
+          rm -rf sdk
+          mkdir -p sdk
+          file_name=$(basename "${{ matrix.sdk_url }}")
+          tarball_path="$GITHUB_WORKSPACE/cache-sdk/$file_name"
+          if [[ "$file_name" == *.zst ]]; then
+            tar --zstd -xf "$tarball_path" -C sdk --strip-components=1
+          else
+            tar -xf "$tarball_path" -C sdk --strip-components=1
+          fi
+
+      - name: Update feeds & install package
+        run: |
+          cd sdk
+          cp -f feeds.conf.default feeds.conf
+          tmp="$(mktemp)"
+          {
+            echo "src-git frp https://github.com/${{ github.repository }}.git"
+            cat feeds.conf
+          } > "$tmp"
+          mv "$tmp" feeds.conf
+
+          sed -i \
+            -e 's|https://git.openwrt.org/openwrt/|https://github.com/openwrt/|g' \
+            -e 's|https://git.openwrt.org/feed/|https://github.com/openwrt/|g' \
+            -e 's|https://git.openwrt.org/project/|https://github.com/openwrt/|g' \
+            feeds.conf
+
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a -p frp
+
+          echo "CONFIG_PACKAGE_luci-app-frpc=m" > .config
+          echo "CONFIG_PACKAGE_luci-app-frps=m" >> .config
+          make package/luci-app-frpc/download -j8
+          make package/luci-app-frps/download -j8
+
+      - name: Pre-generate configuration
+        run: |
+          cd sdk
+          echo "CONFIG_ALL_NONSHARED=n" > .config
+          echo "CONFIG_ALL_KMODS=n" >> .config
+          echo "CONFIG_ALL=n" >> .config
+          echo "CONFIG_AUTOREMOVE=n" >> .config
+          echo "CONFIG_SIGNED_PACKAGES=n" >> .config
+          echo "CONFIG_LUCI_LANG_zh_Hans=y" >> .config
+          echo "CONFIG_PACKAGE_luci-app-frpc=m" >> .config
+          echo "CONFIG_PACKAGE_luci-app-frps=m" >> .config
+          make defconfig
+
+      - name: Build package
+        run: |
+          cd sdk
+          make package/luci-app-frpc/{clean,compile} -j$(nproc) V=s
+          make package/luci-app-frps/{clean,compile} -j$(nproc) V=s
+
+      - name: Collect luci packages
+        run: |
+          cd sdk
+          mkdir -p ../release/luci/${{ matrix.pkg_ext }}
+          shopt -s nullglob
+          files=(bin/packages/*/frp/luci-app-frp*.${{ matrix.pkg_ext }})
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No luci packages found (*.${{ matrix.pkg_ext }})" >&2
+            find bin/packages -maxdepth 6 -type f -name "*.${{ matrix.pkg_ext }}" -print || true
+            exit 1
+          fi
+          cp "${files[@]}" ../release/luci/${{ matrix.pkg_ext }}/
+
+      - name: Upload luci artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: luci-${{ matrix.luci_ver }}-${{ matrix.sdk_ver }}-${{ matrix.pkg_ext }}
+          path: release/luci/${{ matrix.pkg_ext }}/*.${{ matrix.pkg_ext }}
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.prepare_release.outputs.frp_version }}
+          files: release/luci/${{ matrix.pkg_ext }}/*.${{ matrix.pkg_ext }}
+          prerelease: false
+          update_existing_release: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build_bin:
+    name: Build bin (${{ matrix.pkg_ext }}, x86_64)
+    needs: prepare_release
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - pkg_ext: "ipk"
+            sdk_ver: "24.10.5"
+            sdk_url: "https://downloads.openwrt.org/releases/24.10.5/targets/x86/64/openwrt-sdk-24.10.5-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst"
+          - pkg_ext: "apk"
+            sdk_ver: "snapshot"
+            sdk_url: "https://downloads.openwrt.org/snapshots/targets/x86/64/openwrt-sdk-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          sudo -E rm -rf /usr/share/dotnet /etc/mysql /etc/php /etc/apt/sources.list.d /usr/local/lib/android
+          sudo -E apt-get -qq update
+          sudo -E apt-get -qq install build-essential clang flex bison g++ gawk gcc-multilib g++-multilib gettext git libncurses-dev libssl-dev python3-distutils python3-setuptools rsync swig unzip zlib1g-dev file wget xz-utils zstd gettext-base
+          sudo -E apt-get -qq autoremove --purge
+          sudo -E apt-get -qq clean
+
+      - name: Cache OpenWrt SDK
+        id: cache-sdk
+        uses: actions/cache@v4
+        with:
+          path: cache-sdk
+          key: openwrt-bin-sdk-${{ matrix.sdk_ver }}-amd64-${{ matrix.pkg_ext }}
+
+      - name: Download SDK
+        if: steps.cache-sdk.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p cache-sdk
+          cd cache-sdk
+          wget "${{ matrix.sdk_url }}"
+
+      - name: Extract SDK
+        run: |
+          rm -rf sdk
+          mkdir -p sdk
+          file_name=$(basename "${{ matrix.sdk_url }}")
+          tarball_path="$GITHUB_WORKSPACE/cache-sdk/$file_name"
+          if [[ "$file_name" == *.zst ]]; then
+            tar --zstd -xf "$tarball_path" -C sdk --strip-components=1
+          else
+            tar -xf "$tarball_path" -C sdk --strip-components=1
+          fi
+
+      - name: Update feeds & install package
+        run: |
+          cd sdk
+          cp -f feeds.conf.default feeds.conf
+          tmp="$(mktemp)"
+          {
+            echo "src-git frp https://github.com/${{ github.repository }}.git"
+            cat feeds.conf
+          } > "$tmp"
+          mv "$tmp" feeds.conf
+
+          sed -i \
+            -e 's|https://git.openwrt.org/openwrt/|https://github.com/openwrt/|g' \
+            -e 's|https://git.openwrt.org/feed/|https://github.com/openwrt/|g' \
+            -e 's|https://git.openwrt.org/project/|https://github.com/openwrt/|g' \
+            feeds.conf
+
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a -p frp
+
+          echo "CONFIG_PACKAGE_frpc=m" > .config
+          echo "CONFIG_PACKAGE_frps=m" >> .config
+          make defconfig
+          make package/frpc/download package/frps/download -j8
+
+      - name: Build package
+        run: |
+          cd sdk
+          make package/frpc/{clean,compile} -j$(nproc) V=s
+          make package/frps/{clean,compile} -j$(nproc) V=s
+
+      - name: Collect bin packages
+        run: |
+          cd sdk
+          mkdir -p ../release/bin/${{ matrix.pkg_ext }}
+          shopt -s nullglob
+          files=(bin/packages/*/frp/frp*.${{ matrix.pkg_ext }})
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No binary packages found (*.${{ matrix.pkg_ext }})" >&2
+            find bin/packages -maxdepth 6 -type f -name "*.${{ matrix.pkg_ext }}" -print || true
+            exit 1
+          fi
+          cp "${files[@]}" ../release/bin/${{ matrix.pkg_ext }}/
+
+      - name: Upload bin artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bin-${{ matrix.sdk_ver }}-${{ matrix.pkg_ext }}
+          path: release/bin/${{ matrix.pkg_ext }}/*.${{ matrix.pkg_ext }}
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.prepare_release.outputs.frp_version }}
+          files: release/bin/${{ matrix.pkg_ext }}/*.${{ matrix.pkg_ext }}
+          prerelease: false
+          update_existing_release: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

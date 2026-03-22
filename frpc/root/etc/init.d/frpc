@@ -1,0 +1,193 @@
+#!/bin/sh /etc/rc.common
+
+START=99
+USE_PROCD=1
+
+NAME="frpc"
+BIN="/usr/bin/frpc"
+CONFIG_FOLDER="/var/etc/$NAME"
+
+_append_opt() {
+	local file="$1"
+	shift
+
+	local key value
+	for key in "$@"; do
+		eval "value=\${$key}"
+		[ -n "$value" ] || continue
+
+		if printf '%s' "$key" | grep -qE 'addr|ip' && printf '%s' "$value" | grep -q ':'; then
+			value="[$value]"
+		fi
+
+		printf '%s = %s\n' "$key" "$value" >> "$file"
+	done
+}
+
+_append_list() {
+	local file="$1"
+	local key="$2"
+	shift 2
+
+	local item
+	for item in "$@"; do
+		[ -n "$item" ] || continue
+		printf '%s\n' "$item" >> "$file"
+	done
+}
+
+_append_common() {
+	local section="$1"
+	local file="$2"
+
+	config_get server_addr "$section" server_addr
+	config_get server_port "$section" server_port
+	config_get http_proxy "$section" http_proxy
+	config_get log_file "$section" log_file
+	config_get log_level "$section" log_level
+	config_get log_max_days "$section" log_max_days
+	config_get disable_log_color "$section" disable_log_color
+	config_get token "$section" token
+	config_get admin_addr "$section" admin_addr
+	config_get admin_port "$section" admin_port
+	config_get admin_user "$section" admin_user
+	config_get admin_pwd "$section" admin_pwd
+	config_get assets_dir "$section" assets_dir
+	config_get tcp_mux "$section" tcp_mux
+	config_get user "$section" user
+	config_get login_fail_exit "$section" login_fail_exit
+	config_get protocol "$section" protocol
+	config_get tls_enable "$section" tls_enable
+	config_get heartbeat_interval "$section" heartbeat_interval
+	config_get heartbeat_timeout "$section" heartbeat_timeout
+
+	_append_opt "$file" \
+		server_addr server_port http_proxy log_file log_level log_max_days \
+		disable_log_color token admin_addr admin_port admin_user admin_pwd \
+		assets_dir tcp_mux user login_fail_exit protocol tls_enable \
+		heartbeat_interval heartbeat_timeout
+}
+
+_append_proxy() {
+	local section="$1"
+	local file="$2"
+
+	[ "$section" = "common" ] && return 0
+
+	config_get name "$section" name
+	[ -n "$name" ] || return 0
+
+	config_get type "$section" type
+	config_get use_encryption "$section" use_encryption
+	config_get use_compression "$section" use_compression
+	config_get local_ip "$section" local_ip
+	config_get local_port "$section" local_port
+	config_get remote_port "$section" remote_port
+	config_get role "$section" role
+	config_get server_name "$section" server_name
+	config_get bind_addr "$section" bind_addr
+	config_get bind_port "$section" bind_port
+	config_get sk "$section" sk
+	config_get http_user "$section" http_user
+	config_get http_pwd "$section" http_pwd
+	config_get subdomain "$section" subdomain
+	config_get custom_domains "$section" custom_domains
+	config_get locations "$section" locations
+	config_get host_header_rewrite "$section" host_header_rewrite
+	config_get proxy_protocol_version "$section" proxy_protocol_version
+	config_get group "$section" group
+	config_get group_key "$section" group_key
+	config_get health_check_type "$section" health_check_type
+	config_get health_check_url "$section" health_check_url
+	config_get health_check_timeout_s "$section" health_check_timeout_s
+	config_get health_check_max_failed "$section" health_check_max_failed
+	config_get health_check_interval_s "$section" health_check_interval_s
+	config_get plugin "$section" plugin
+	config_get plugin_http_user "$section" plugin_http_user
+	config_get plugin_http_passwd "$section" plugin_http_passwd
+	config_get plugin_user "$section" plugin_user
+	config_get plugin_passwd "$section" plugin_passwd
+	config_get plugin_unix_path "$section" plugin_unix_path
+	config_get plugin_local_addr "$section" plugin_local_addr
+	config_get plugin_local_path "$section" plugin_local_path
+	config_get plugin_strip_prefix "$section" plugin_strip_prefix
+	config_get plugin_crt_path "$section" plugin_crt_path
+	config_get plugin_key_path "$section" plugin_key_path
+	config_get plugin_host_header_rewrite "$section" plugin_host_header_rewrite
+	config_get plugin_output_buffer_size "$section" plugin_output_buffer_size
+
+	printf '\n[%s]\n' "$name" >> "$file"
+	_append_opt "$file" \
+		type use_encryption use_compression local_ip local_port remote_port role \
+		server_name bind_addr bind_port sk http_user http_pwd subdomain \
+		custom_domains locations host_header_rewrite proxy_protocol_version \
+		group group_key health_check_type health_check_url health_check_timeout_s \
+		health_check_max_failed health_check_interval_s plugin plugin_http_user \
+		plugin_http_passwd plugin_user plugin_passwd plugin_unix_path \
+		plugin_local_addr plugin_local_path plugin_strip_prefix plugin_crt_path \
+		plugin_key_path plugin_host_header_rewrite plugin_output_buffer_size
+}
+
+_load_env() {
+	local env="$1"
+	[ -n "$env" ] || return 0
+	procd_append_param env "$env"
+}
+
+_load_include() {
+	local file="$1"
+	[ -f "$file" ] || return 0
+	cat "$file" >> "$2"
+}
+
+_create_config() {
+	local out="$1"
+	local tmp
+	tmp="$(mktemp /tmp/frpc-XXXXXX)"
+
+	echo "[common]" > "$tmp"
+	_append_common "common" "$tmp"
+
+	config_foreach _append_proxy conf "$tmp"
+
+	config_list_foreach main conf_inc _load_include "$tmp"
+
+	sed '/^$/d' "$tmp" > "$out"
+	rm -f "$tmp"
+}
+
+start_service() {
+	config_load frpc
+	test -d "$CONFIG_FOLDER" || mkdir -p "$CONFIG_FOLDER"
+
+	local config_file="$CONFIG_FOLDER/frpc.ini"
+	_create_config "$config_file"
+
+	procd_open_instance "$NAME"
+	procd_set_param command "$BIN" -c "$config_file"
+	procd_set_param file "$config_file"
+
+	config_get_bool stdout main stdout 0
+	config_get_bool stderr main stderr 0
+	config_get user main user
+	config_get group main group
+	config_get_bool respawn main respawn 1
+
+	[ "$stdout" = "1" ] && procd_set_param stdout 1
+	[ "$stderr" = "1" ] && procd_set_param stderr 1
+	[ -n "$user" ] && procd_set_param user "$user"
+	[ -n "$group" ] && procd_set_param group "$group"
+	[ "$respawn" = "1" ] && procd_set_param respawn
+
+	config_list_foreach main env _load_env
+	procd_close_instance
+}
+
+reload_service() {
+	stop
+	start
+}
+
+service_triggers() {
+	procd_add_reload_trigger frpc
+}
