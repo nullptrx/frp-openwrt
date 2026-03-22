@@ -24,6 +24,17 @@ echo "src-git frp https://github.com/<your-org>/frp-openwrt.git" >> feeds.conf
 ./scripts/feeds update -a
 ./scripts/feeds install -d n luci-app-frpc
 ./scripts/feeds install -d n luci-app-frps
+./scripts/feeds install -d n luci-i18n-frpc-zh-cn
+./scripts/feeds install -d n luci-i18n-frps-zh-cn
 ```
 
-Then build the packages as usual with `make menuconfig` and `make`.
+Then select the packages in `make menuconfig`, and build them with:
+
+```bash
+make package/luci-app-frpc/{clean,compile} V=s
+make package/luci-app-frps/{clean,compile} V=s
+make package/luci-i18n-frpc-zh-cn/{clean,compile} V=s
+make package/luci-i18n-frps-zh-cn/{clean,compile} V=s
+```
+
+The generated packages are written under `bin/packages/*/frp/`.
