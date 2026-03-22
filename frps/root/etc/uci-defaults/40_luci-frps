@@ -1,0 +1,16 @@
+#!/bin/sh
+
+if ! uci -q get frps.common.enabled >/dev/null; then
+	uci -q set frps.common.enabled='false'
+	uci -q commit frps
+fi
+
+uci -q batch <<-EOF >/dev/null
+	delete ucitrack.@frps[-1]
+	add ucitrack frps
+	set ucitrack.@frps[-1].init=frps
+	commit ucitrack
+EOF
+
+rm -rf /tmp/luci-indexcache /tmp/luci-modulecache
+exit 0
