@@ -213,7 +213,7 @@ return view.extend({
 			return E('div', { class: 'cbi-map' },
 				E('fieldset', { class: 'cbi-section'}, [
 					E('div', {
-						style: 'display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;'
+						style: 'display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;'
 					}, [
 						statusNode,
 						actionsNode
