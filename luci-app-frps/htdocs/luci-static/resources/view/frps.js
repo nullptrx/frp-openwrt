@@ -3,7 +3,6 @@
 'require ui';
 'require fs';
 'require form';
-'require dom';
 'require rpc';
 'require tools.widgets as widgets';
 
@@ -198,13 +197,16 @@ return view.extend({
 			L.Poll.add(function () {
 				return L.resolveDefault(getServiceStatus()).then(function(res) {
 					statusNode.innerHTML = renderStatus(res);
-					dom.content(actionsNode, res ? [
-						E('button', {
+
+					actionsNode.replaceChildren();
+
+					if (res) {
+						actionsNode.appendChild(E('button', {
 							type: 'button',
 							'class': 'btn cbi-button cbi-button-action',
 							'click': ui.createHandlerFn(null, () => openDashboard(dashboardPortOption, dashboardTlsOption))
-						}, [_('Open Web UI')])
-					] : []);
+						}, [_('Open Web UI')]));
+					}
 				});
 			});
 
