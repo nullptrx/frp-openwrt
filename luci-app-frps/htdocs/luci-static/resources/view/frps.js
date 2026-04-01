@@ -3,6 +3,7 @@
 'require ui';
 'require fs';
 'require form';
+'require dom';
 'require rpc';
 'require tools.widgets as widgets';
 
@@ -78,6 +79,34 @@ function pushToml() {
 	});
 }
 
+function getOptionValue(option, sectionId) {
+	if (!option)
+		return null;
+
+	const formValue = option.formvalue(sectionId);
+	return formValue != null && formValue !== '' ? formValue : option.cfgvalue(sectionId);
+}
+
+function openDashboard(portOption, tlsOption) {
+	const port = getOptionValue(portOption, 'common');
+
+	if (!port || port === '0') {
+		ui.addNotification(null, E('p', {}, _('Dashboard port is not configured')));
+		return;
+	}
+
+	const tlsEnabled = getOptionValue(tlsOption, 'common') === 'true';
+	const url = new URL(window.location.href);
+
+	url.protocol = tlsEnabled ? 'https:' : 'http:';
+	url.port = String(port);
+	url.pathname = '/';
+	url.search = '';
+	url.hash = '';
+
+	window.open(url.toString(), '_blank', 'noopener,noreferrer');
+}
+
 function setParams(o, params) {
 	if (!params) return;
 	for (let key in params) {
@@ -146,16 +175,12 @@ function getServiceStatus() {
 }
 
 function renderStatus(isRunning) {
-	let renderHTML = "";
 	const spanTemp = '<em><span style="color:%s"><strong>%s %s</strong></span></em>';
 
-	if (isRunning) {
-		renderHTML += String.format(spanTemp, 'green', _("frp Server"), _("RUNNING"));
-	} else {
-		renderHTML += String.format(spanTemp, 'red', _("frp Server"), _("NOT RUNNING"));
-	}
+	if (isRunning)
+		return String.format(spanTemp, 'green', _("frp Server"), _("RUNNING"));
 
-	return renderHTML;
+	return String.format(spanTemp, 'red', _("frp Server"), _("NOT RUNNING"));
 }
 
 return view.extend({
@@ -167,17 +192,30 @@ return view.extend({
 		s = m.section(form.NamedSection, '_status');
 		s.anonymous = true;
 		s.render = function (section_id) {
+			const statusNode = E('p', { id: 'service_status', style: 'margin:0' }, _('Collecting data ...'));
+			const actionsNode = E('div', { id: 'service_actions' });
+
 			L.Poll.add(function () {
 				return L.resolveDefault(getServiceStatus()).then(function(res) {
-					const view = document.getElementById("service_status");
-					view.innerHTML = renderStatus(res);
+					statusNode.innerHTML = renderStatus(res);
+					dom.content(actionsNode, res ? [
+						E('button', {
+							type: 'button',
+							'class': 'btn cbi-button cbi-button-action',
+							'click': ui.createHandlerFn(null, () => openDashboard(dashboardPortOption, dashboardTlsOption))
+						}, [_('Open Web UI')])
+					] : []);
 				});
 			});
 
 			return E('div', { class: 'cbi-map' },
 				E('fieldset', { class: 'cbi-section'}, [
-					E('p', { id: 'service_status' },
-						_('Collecting data ...'))
+					E('div', {
+						style: 'display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;'
+					}, [
+						statusNode,
+						actionsNode
+					])
 				])
 			);
 		}
@@ -189,6 +227,9 @@ return view.extend({
 		s.tab('init', _('Startup settings'));
 
 		defTabOpts(s, 'common', commonConf, {optional: true});
+
+		const dashboardPortOption = s.getOption('dashboard_port');
+		const dashboardTlsOption = s.getOption('dashboard_tls_mode');
 
 		let sync = m.section(form.TypedSection, '_sync');
 		sync.anonymous = true;
