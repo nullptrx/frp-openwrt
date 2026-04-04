@@ -78,8 +78,9 @@ def main() -> int:
 
     manifest = "\n".join(build_entry(path) for path in packages) + "\n"
     (root / "Packages").write_text(manifest, encoding="utf-8")
-    with gzip.open(root / "Packages.gz", "wb", compresslevel=9, mtime=0) as fh:
-        fh.write(manifest.encode("utf-8"))
+    with (root / "Packages.gz").open("wb") as raw:
+        with gzip.GzipFile(fileobj=raw, mode="wb", compresslevel=9, mtime=0) as fh:
+            fh.write(manifest.encode("utf-8"))
     return 0
 
 
