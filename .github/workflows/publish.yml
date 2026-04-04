@@ -81,40 +81,51 @@ jobs:
           set -euo pipefail
 
           repo_name="frp"
-          base_dir="$GITHUB_WORKSPACE/pages/openwrt-${OPENWRT_SERIES}"
-          mkdir -p "$base_dir"
+          ipk_base_dir="$GITHUB_WORKSPACE/pages/openwrt-${OPENWRT_SERIES}"
+          apk_base_dir="$GITHUB_WORKSPACE/pages/SNAPSHOT"
+          mkdir -p "$ipk_base_dir" "$apk_base_dir"
           touch "$GITHUB_WORKSPACE/pages/.nojekyll"
           echo "frpfrp.pages.dev" > "$GITHUB_WORKSPACE/pages/CNAME"
 
-          mapfile -t luci_files < <(find artifacts -type f -path '*/luci-*-*-ipk/*.ipk' | sort)
-          if [ "${#luci_files[@]}" -eq 0 ]; then
-            echo "No luci ipk artifacts found" >&2
-            exit 1
-          fi
+          publish_ext() {
+            local ext="$1"
+            local base_dir="$2"
+            local luci_pattern="$3"
+            local bin_dir_pattern="$4"
 
-          mapfile -t bin_artifact_dirs < <(find artifacts -mindepth 1 -maxdepth 1 -type d -name 'bin-*-*-ipk' | sort)
-          if [ "${#bin_artifact_dirs[@]}" -eq 0 ]; then
-            echo "No bin ipk artifacts found" >&2
-            exit 1
-          fi
-
-          for artifact_dir in "${bin_artifact_dirs[@]}"; do
-            artifact_name="$(basename "$artifact_dir")"
-            platform="${artifact_name#bin-}"
-            platform="${platform%-${FRP_VERSION}-ipk}"
-            repo_dir="$base_dir/$platform/$repo_name"
-
-            mkdir -p "$repo_dir"
-
-            mapfile -t bin_files < <(find "$artifact_dir" -type f -name '*.ipk' | sort)
-            if [ "${#bin_files[@]}" -eq 0 ]; then
-              echo "No ipk files found in $artifact_name" >&2
+            mapfile -t luci_files < <(find artifacts -type f -path "$luci_pattern" | sort)
+            if [ "${#luci_files[@]}" -eq 0 ]; then
+              echo "No luci ${ext} artifacts found" >&2
               exit 1
             fi
 
-            cp "${bin_files[@]}" "$repo_dir/"
-            cp "${luci_files[@]}" "$repo_dir/"
-          done
+            mapfile -t bin_artifact_dirs < <(find artifacts -mindepth 1 -maxdepth 1 -type d -name "$bin_dir_pattern" | sort)
+            if [ "${#bin_artifact_dirs[@]}" -eq 0 ]; then
+              echo "No bin ${ext} artifacts found" >&2
+              exit 1
+            fi
+
+            for artifact_dir in "${bin_artifact_dirs[@]}"; do
+              artifact_name="$(basename "$artifact_dir")"
+              platform="${artifact_name#bin-}"
+              platform="${platform%-${FRP_VERSION}-${ext}}"
+              repo_dir="$base_dir/$platform/$repo_name"
+
+              mkdir -p "$repo_dir"
+
+              mapfile -t bin_files < <(find "$artifact_dir" -type f -name "*.${ext}" | sort)
+              if [ "${#bin_files[@]}" -eq 0 ]; then
+                echo "No ${ext} files found in $artifact_name" >&2
+                exit 1
+              fi
+
+              cp "${bin_files[@]}" "$repo_dir/"
+              cp "${luci_files[@]}" "$repo_dir/"
+            done
+          }
+
+          publish_ext "ipk" "$ipk_base_dir" '*/luci-*-*-ipk/*.ipk' 'bin-*-*-ipk'
+          publish_ext "apk" "$apk_base_dir" '*/luci-*-*-apk/*.apk' 'bin-*-*-apk'
 
           python3 "$GITHUB_WORKSPACE/scripts/render_feed_index.py"
 
