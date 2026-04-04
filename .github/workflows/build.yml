@@ -8,6 +8,9 @@ on:
   repository_dispatch:
     types: [trigger-build]
 
+permissions:
+  contents: write
+
 jobs:
   prepare_release:
     name: Prepare release
@@ -33,9 +36,50 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  cleanup_release_assets:
+    name: Cleanup existing release assets
+    needs: prepare_release
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get version
+        id: get_version
+        run: |
+          version=$(cat frp.ver)
+          echo "FRP_VERSION=$version" >> $GITHUB_ENV
+          echo "FRP Version: $version"
+
+      - name: Delete existing assets for current release
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const tag = `v${process.env.FRP_VERSION}`;
+            const { owner, repo } = context.repo;
+            const release = await github.rest.repos.getReleaseByTag({
+              owner,
+              repo,
+              tag
+            });
+
+            const assets = release.data.assets || [];
+            core.info(`Found ${assets.length} existing assets on ${tag}`);
+
+            for (const asset of assets) {
+              core.info(`Deleting asset: ${asset.name} (${asset.id})`);
+              await github.rest.repos.deleteReleaseAsset({
+                owner,
+                repo,
+                asset_id: asset.id
+              });
+            }
+
   build_luci:
     name: Build luci (${{ matrix.pkg_ext }}, ${{ matrix.sdk_ver }})
-    needs: prepare_release
+    needs: cleanup_release_assets
     runs-on: ubuntu-22.04
     env:
       SDK_DIR: ${{ github.workspace }}/../sdk
@@ -181,7 +225,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: luci-${{ matrix.luci_ver }}-${{ matrix.sdk_ver }}-${{ matrix.pkg_ext }}
-          path: release/luci/${{ matrix.pkg_ext }}/*.${{ matrix.pkg_ext }}
+          path: release/luci/${{ matrix.pkg_ext }}/
 
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
@@ -195,7 +239,7 @@ jobs:
 
   build_bin:
     name: Build bin (${{ matrix.pkg_ext }}, ${{ matrix.platform }})
-    needs: prepare_release
+    needs: cleanup_release_assets
     runs-on: ubuntu-22.04
     env:
       SDK_DIR: ${{ github.workspace }}/../sdk
@@ -480,7 +524,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: bin-${{ matrix.platform }}-${{ env.FRP_VERSION }}-${{ matrix.pkg_ext }}
-          path: release/bin/${{ matrix.pkg_ext }}/${{ matrix.platform }}/*.${{ matrix.pkg_ext }}
+          path: release/bin/${{ matrix.pkg_ext }}/${{ matrix.platform }}/
 
       - name: Upload release assets for ${{ matrix.platform }}
         uses: softprops/action-gh-release@v2

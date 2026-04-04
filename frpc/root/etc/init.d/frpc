@@ -317,7 +317,7 @@ _sync_proxy_section() {
 
 _sync_common_option() {
 	case "$1" in
-		server_addr|server_port|http_proxy|log_file|log_level|log_max_days|disable_log_color|auth_method|token|oidc_client_id|oidc_client_secret|oidc_audience|oidc_token_endpoint_url|admin_addr|admin_port|admin_user|admin_pwd|assets_dir|tcp_mux|user|login_fail_exit|protocol|tls_enable|heartbeat_interval|heartbeat_timeout|allow_ports|conf_inc)
+		server_addr|server_port|http_proxy|log_file|log_level|log_max_days|disable_log_color|auth_method|token|oidc_client_id|oidc_client_secret|oidc_audience|oidc_token_endpoint_url|admin_addr|admin_port|admin_user|admin_pwd|assets_dir|tcp_mux|user|login_fail_exit|protocol|tls_enable|heartbeat_interval|heartbeat_timeout|allow_ports|conf_inc|store_enable|store_path)
 			printf '%s' "$1"
 			;;
 		auth.method)
@@ -392,10 +392,34 @@ _sync_common_option() {
 		transport.heartbeatTimeout)
 			printf '%s' 'heartbeat_timeout'
 			;;
+		store.path)
+			printf '%s' 'store_path'
+			;;
 		*)
 			return 1
 			;;
 	esac
+}
+
+_append_store() {
+	local section="$1"
+	local file="$2"
+	local store_enable store_path
+
+	config_get store_enable "$section" store_enable false
+	case "$store_enable" in
+		1|true|TRUE|yes|on)
+			;;
+		*)
+			return 0
+			;;
+	esac
+
+	config_get store_path "$section" store_path /etc/frpc/frpc_store.json
+	[ -n "$store_path" ] || store_path="/etc/frpc/frpc_store.json"
+
+	printf '\n[store]\n' >> "$file"
+	_toml_write_string "$file" path "$store_path"
 }
 
 _append_common() {
@@ -429,6 +453,8 @@ _append_common() {
 	config_get_bool tls_enable "$section" tls_enable 0
 	config_get heartbeat_interval "$section" heartbeat_interval
 	config_get heartbeat_timeout "$section" heartbeat_timeout
+	config_get_bool store_enable "$section" store_enable 0
+	config_get store_path "$section" store_path
 
 	_toml_write_string "$file" serverAddr "$server_addr"
 	_toml_write_int "$file" serverPort "$server_port"
@@ -742,6 +768,7 @@ _sync_common_from_toml() {
 	uci -q set 'frpc.common.disable_log_color=false'
 	uci -q set 'frpc.common.tcp_mux=true'
 	uci -q set 'frpc.common.login_fail_exit=true'
+	uci -q set 'frpc.common.store_enable=false'
 
 	while IFS= read -r line || [ -n "$line" ]; do
 		line="${line%$'\r'}"
@@ -753,6 +780,11 @@ _sync_common_from_toml() {
 			'[[proxies]]')
 				section="proxy"
 				current_proxy=""
+				continue
+				;;
+			'[store]')
+				section="store"
+				uci -q set 'frpc.common.store_enable=true'
 				continue
 				;;
 			\[*\])
@@ -814,6 +846,19 @@ _sync_common_from_toml() {
 			continue
 		fi
 
+		if [ "$section" = "store" ]; then
+			case "$key" in
+				path)
+					if printf '%s' "$value" | grep -q '^".*"$'; then
+						value="${value#\"}"
+						value="${value%\"}"
+					fi
+					[ -n "$value" ] && uci -q set "frpc.common.store_path=$value"
+					;;
+			esac
+			continue
+		fi
+
 		case "$key" in
 			includes)
 				value="${value#[}"
@@ -863,6 +908,7 @@ _create_config() {
 	tmp="$(mktemp /tmp/frpc-XXXXXX)"
 
 	_append_common "common" "$tmp"
+	_append_store "common" "$tmp"
 
 	config_foreach _append_proxy conf "$tmp"
 

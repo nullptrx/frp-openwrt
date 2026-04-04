@@ -183,6 +183,26 @@ msgstr "心跳包间隔时间"
 msgid "Heartbeat timeout"
 msgstr "心跳包超时"
 
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:40
+msgid "Store"
+msgstr "Store"
+
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:40
+msgid "Enable the `store` section for frpc runtime state persistence."
+msgstr "启用 `store` 配置段，用于持久化 frpc 运行时状态。"
+
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:41
+msgid "Store path"
+msgstr "Store 路径"
+
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:41
+msgid ""
+"Path specifies where frpc stores runtime state when the `store` section is "
+"enabled.<br />By default, this value is \"/etc/frpc/frpc_store.json\"."
+msgstr ""
+"Path 用于指定在启用 `store` 配置段时，frpc 保存运行时状态的文件路径。<br />"
+"默认值是 \"/etc/frpc/frpc_store.json\"。"
+
 #: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:65
 msgid "Host header rewrite"
 msgstr "主机头重写"

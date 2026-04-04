@@ -25,6 +25,8 @@ config conf 'common'
 	option tls_enable 'false'
 	option heartbeat_interval '30'
 	option heartbeat_timeout '90'
+	option store_enable 'false'
+	option store_path '/etc/frpc/frpc_store.json'
 
 config init 'main'
 	option stdout '0'

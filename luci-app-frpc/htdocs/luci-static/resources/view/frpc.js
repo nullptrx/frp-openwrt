@@ -44,6 +44,8 @@ const commonConf = [
 	[form.Flag, 'tls_enable', _('TLS'), _('TLS Enable specifies whether or not TLS should be used when communicating with the server.'), {datatype: 'bool', rmempty: false}],
 	[form.Value, 'heartbeat_interval', _('Heartbeat interval'), _('HeartBeatInterval specifies at what interval heartbeats are sent to the server, in seconds. It is not recommended to change this value.<br />By default, this value is 30.'), {datatype: 'uinteger', rmempty: false}],
 	[form.Value, 'heartbeat_timeout', _('Heartbeat timeout'), _('HeartBeatTimeout specifies the maximum allowed heartbeat response delay before the connection is terminated, in seconds. It is not recommended to change this value.<br />By default, this value is 90.'), {datatype: 'uinteger', rmempty: false}],
+	[form.Flag, 'store_enable', _('Store'), _('Enable the `store` section for frpc runtime state persistence.'), {datatype: 'bool', rmempty: false}],
+	[form.Value, 'store_path', _('Store path'), _('Path specifies where frpc stores runtime state when the `store` section is enabled.<br />By default, this value is "/etc/frpc/frpc_store.json".'), {datatype: 'file', rmempty: false, depends: {store_enable: 'true'}, retain: true, placeholder: '/etc/frpc/frpc_store.json', default: '/etc/frpc/frpc_store.json'}],
 	[form.DynamicList, '_', _('Additional settings'), _('This list can be used to specify some additional parameters which have not been included in this LuCI.'), {placeholder: 'Key-A=Value-A'}]
 ];
 

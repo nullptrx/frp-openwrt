@@ -48,3 +48,23 @@ make package/luci-app-frps/{clean,compile} V=s
 ```
 
 The generated packages are written under `bin/packages/*/frp/`.
+
+## GitHub Pages feed
+
+The `Build OpenWrt` workflow also publishes `ipk` feeds to GitHub Pages with
+this layout:
+
+```text
+https://frpfrp.pages.dev/openwrt-24.10/<target>/frp
+```
+
+Example:
+
+```bash
+echo 'src/gz frp https://frpfrp.pages.dev/openwrt-24.10/aarch64_cortex-a53/frp' >> /etc/opkg/customfeeds.conf
+opkg update
+opkg install frpc luci-app-frpc
+```
+
+Each feed directory contains the package files together with `Packages`,
+`Packages.gz`, and `Packages.manifest`.

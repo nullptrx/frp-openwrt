@@ -1,0 +1,129 @@
+name: Publish Pages
+
+on:
+  workflow_run:
+    workflows: ["Build OpenWrt"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Build OpenWrt run id (from actions/runs/<id>) [Optional]"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: publish-pages
+  cancel-in-progress: true
+
+jobs:
+  publish_pages:
+    name: Publish files to Pages
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-22.04
+    env:
+      OPENWRT_SERIES: "24.10"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Resolve build run id
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_RUN_ID: ${{ github.event.inputs.run_id }}
+          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${INPUT_RUN_ID:-}" ]; then
+            run_id="$INPUT_RUN_ID"
+          elif [ -n "${WORKFLOW_RUN_ID:-}" ]; then
+            run_id="$WORKFLOW_RUN_ID"
+          else
+            run_id="$(gh run list --workflow 'Build OpenWrt' --branch main --status success --limit 1 --json databaseId --jq '.[0].databaseId')"
+          fi
+
+          if [ -z "$run_id" ] || [ "$run_id" = "null" ]; then
+            echo "Unable to determine Build OpenWrt run id" >&2
+            exit 1
+          fi
+
+          echo "BUILD_RUN_ID=$run_id" >> "$GITHUB_ENV"
+          echo "Using Build OpenWrt run id: $run_id"
+
+      - name: Get version
+        run: |
+          version=$(cat frp.ver)
+          echo "FRP_VERSION=$version" >> "$GITHUB_ENV"
+          echo "FRP Version: $version"
+
+      - name: Download build artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          rm -rf artifacts
+          mkdir -p artifacts
+          gh run download "$BUILD_RUN_ID" --dir artifacts
+          find artifacts -maxdepth 2 -type d | sort
+
+      - name: Generate Pages feed layout
+        run: |
+          set -euo pipefail
+
+          repo_name="frp"
+          base_dir="$GITHUB_WORKSPACE/pages/openwrt-${OPENWRT_SERIES}"
+          mkdir -p "$base_dir"
+          touch "$GITHUB_WORKSPACE/pages/.nojekyll"
+          echo "frpfrp.pages.dev" > "$GITHUB_WORKSPACE/pages/CNAME"
+
+          mapfile -t luci_files < <(find artifacts -type f -path '*/luci-*-*-ipk/*.ipk' | sort)
+          if [ "${#luci_files[@]}" -eq 0 ]; then
+            echo "No luci ipk artifacts found" >&2
+            exit 1
+          fi
+
+          mapfile -t bin_artifact_dirs < <(find artifacts -mindepth 1 -maxdepth 1 -type d -name 'bin-*-*-ipk' | sort)
+          if [ "${#bin_artifact_dirs[@]}" -eq 0 ]; then
+            echo "No bin ipk artifacts found" >&2
+            exit 1
+          fi
+
+          for artifact_dir in "${bin_artifact_dirs[@]}"; do
+            artifact_name="$(basename "$artifact_dir")"
+            platform="${artifact_name#bin-}"
+            platform="${platform%-${FRP_VERSION}-ipk}"
+            repo_dir="$base_dir/$platform/$repo_name"
+
+            mkdir -p "$repo_dir"
+
+            mapfile -t bin_files < <(find "$artifact_dir" -type f -name '*.ipk' | sort)
+            if [ "${#bin_files[@]}" -eq 0 ]; then
+              echo "No ipk files found in $artifact_name" >&2
+              exit 1
+            fi
+
+            cp "${bin_files[@]}" "$repo_dir/"
+            cp "${luci_files[@]}" "$repo_dir/"
+          done
+
+          python3 "$GITHUB_WORKSPACE/scripts/render_feed_index.py"
+
+          find "$GITHUB_WORKSPACE/pages" -type f | sort
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: pages
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4

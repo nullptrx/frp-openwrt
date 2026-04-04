@@ -1,7 +1,23 @@
 #!/bin/sh
 
+changed=0
+
 if ! uci -q get frpc.common.enabled >/dev/null; then
 	uci -q set frpc.common.enabled='false'
+	changed=1
+fi
+
+if ! uci -q get frpc.common.store_enable >/dev/null; then
+	uci -q set frpc.common.store_enable='false'
+	changed=1
+fi
+
+if ! uci -q get frpc.common.store_path >/dev/null; then
+	uci -q set frpc.common.store_path='/etc/frpc/frpc_store.json'
+	changed=1
+fi
+
+if [ "$changed" = "1" ]; then
 	uci -q commit frpc
 fi
 

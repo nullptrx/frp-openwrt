@@ -163,6 +163,24 @@ msgstr ""
 msgid "Heartbeat timeout"
 msgstr ""
 
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:40
+msgid "Store"
+msgstr ""
+
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:40
+msgid "Enable the `store` section for frpc runtime state persistence."
+msgstr ""
+
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:41
+msgid "Store path"
+msgstr ""
+
+#: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:41
+msgid ""
+"Path specifies where frpc stores runtime state when the `store` section is "
+"enabled.<br />By default, this value is \"/etc/frpc/frpc_store.json\"."
+msgstr ""
+
 #: applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js:65
 msgid "Host header rewrite"
 msgstr ""
