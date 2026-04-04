@@ -49,22 +49,49 @@ make package/luci-app-frps/{clean,compile} V=s
 
 The generated packages are written under `bin/packages/*/frp/`.
 
-## GitHub Pages feed
+## Install & Update
 
-The `Build OpenWrt` workflow also publishes `ipk` feeds to GitHub Pages with
-this layout:
+### A. Install From Feed (Recommended)
 
-```text
-https://frpfrp.pages.dev/openwrt-24.10/<target>/frp
-```
-
-Example:
+#### 1. Add Feed
 
 ```bash
-echo 'src/gz frp https://frpfrp.pages.dev/openwrt-24.10/aarch64_cortex-a53/frp' >> /etc/opkg/customfeeds.conf
-opkg update
-opkg install frpc luci-app-frpc
+# only needs to be run once
+wget -O - https://cdn.jsdelivr.net/gh/nullptrx/frp-openwrt@main/feed.sh | ash
 ```
 
-Each feed directory contains the package files together with `Packages`,
-`Packages.gz`, and `Packages.manifest`.
+#### 2. Install
+
+```bash
+# you can install from shell or `Software` menu in LuCI
+# for opkg
+opkg install frpc
+opkg install frps
+opkg install luci-app-frpc
+opkg install luci-app-frps
+opkg install luci-i18n-frpc-zh-cn
+opkg install luci-i18n-frps-zh-cn
+
+# for apk
+apk add frpc
+apk add frps
+apk add luci-app-frpc
+apk add luci-app-frps
+apk add luci-i18n-frpc-zh-cn
+apk add luci-i18n-frps-zh-cn
+```
+
+## GitHub Pages feed
+
+- `ipk`: `https://nullptrx.github.io/frp-openwrt/openwrt-24.10/<target>/frp`
+- `apk`: `https://nullptrx.github.io/frp-openwrt/SNAPSHOT/<target>/frp`
+
+Published helper files:
+
+- `https://nullptrx.github.io/frp-openwrt/feed.sh`
+- `https://nullptrx.github.io/frp-openwrt/frp.pub`
+
+For Pages publishing, configure these repository secrets:
+
+- `USIGN_PUBLIC_KEY`
+- `USIGN_PRIVATE_KEY` (optional, only required for `Packages.sig`)

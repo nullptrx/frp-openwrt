@@ -33,14 +33,13 @@ jobs:
       OPENWRT_SERIES: "24.10"
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
       - name: Resolve build run id
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
           INPUT_RUN_ID: ${{ github.event.inputs.run_id }}
           WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+          WORKFLOW_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           set -euo pipefail
 
@@ -57,8 +56,26 @@ jobs:
             exit 1
           fi
 
+          if [ -n "${WORKFLOW_RUN_ID:-}" ] && [ "$run_id" = "$WORKFLOW_RUN_ID" ] && [ -n "${WORKFLOW_HEAD_SHA:-}" ]; then
+            head_sha="$WORKFLOW_HEAD_SHA"
+          else
+            head_sha="$(gh run view "$run_id" --json headSha --jq '.headSha')"
+          fi
+
+          if [ -z "$head_sha" ] || [ "$head_sha" = "null" ]; then
+            echo "Unable to determine Build OpenWrt head sha for run id: $run_id" >&2
+            exit 1
+          fi
+
           echo "BUILD_RUN_ID=$run_id" >> "$GITHUB_ENV"
+          echo "BUILD_HEAD_SHA=$head_sha" >> "$GITHUB_ENV"
           echo "Using Build OpenWrt run id: $run_id"
+          echo "Using Build OpenWrt head sha: $head_sha"
+
+      - name: Checkout repository at build commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BUILD_HEAD_SHA }}
 
       - name: Get version
         run: |
@@ -69,6 +86,7 @@ jobs:
       - name: Download build artifacts
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
           rm -rf artifacts
@@ -80,7 +98,39 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get -qq update
-          sudo apt-get -qq install libarchive-tools
+          sudo apt-get -qq install libarchive-tools build-essential cmake
+
+      - name: Prepare usign for package signatures
+        env:
+          USIGN_PRIVATE_KEY: ${{ secrets.USIGN_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${USIGN_PRIVATE_KEY:-}" ]; then
+            echo "No USIGN_PRIVATE_KEY secret configured; skipping Packages.sig generation"
+            exit 0
+          fi
+
+          git clone --depth 1 https://git.openwrt.org/project/usign.git /tmp/usign
+          cmake -S /tmp/usign -B /tmp/usign/build
+          cmake --build /tmp/usign/build -j"$(nproc)"
+
+          printf '%s' "$USIGN_PRIVATE_KEY" > "$RUNNER_TEMP/usign.key"
+          chmod 600 "$RUNNER_TEMP/usign.key"
+
+          echo "USIGN_BIN=/tmp/usign/build/usign" >> "$GITHUB_ENV"
+          echo "USIGN_KEY=$RUNNER_TEMP/usign.key" >> "$GITHUB_ENV"
+
+      - name: Prepare public key for Pages
+        env:
+          USIGN_PUBLIC_KEY: ${{ secrets.USIGN_PUBLIC_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${USIGN_PUBLIC_KEY:-}" ]; then
+            echo "USIGN_PUBLIC_KEY secret is required for publishing frp.pub" >&2
+            exit 1
+          fi
+
+          printf '%s\n' "$USIGN_PUBLIC_KEY" > "$RUNNER_TEMP/frp.pub"
 
       - name: Generate Pages feed layout
         run: |
@@ -92,6 +142,8 @@ jobs:
           mkdir -p "$ipk_base_dir" "$apk_base_dir"
           touch "$GITHUB_WORKSPACE/pages/.nojekyll"
           echo "frpfrp.pages.dev" > "$GITHUB_WORKSPACE/pages/CNAME"
+          cp "$RUNNER_TEMP/frp.pub" "$GITHUB_WORKSPACE/pages/frp.pub"
+          cp "$GITHUB_WORKSPACE/feed.sh" "$GITHUB_WORKSPACE/pages/feed.sh"
 
           publish_ext() {
             local ext="$1"
@@ -131,6 +183,9 @@ jobs:
                 (
                   cd "$repo_dir"
                   python3 "$GITHUB_WORKSPACE/scripts/build_ipk_index.py"
+                  if [ -n "${USIGN_BIN:-}" ] && [ -n "${USIGN_KEY:-}" ]; then
+                    "$USIGN_BIN" -S -m Packages -s "$USIGN_KEY" -x Packages.sig
+                  fi
                 )
               fi
             done

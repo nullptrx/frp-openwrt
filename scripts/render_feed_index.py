@@ -53,6 +53,21 @@ HTML_TEMPLATE = """<!doctype html>
 """
 
 
+REDIRECT_TEMPLATE = """<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="refresh" content="0; url={target}">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Redirecting</title>
+</head>
+<body>
+  <p><a href="{target}">Redirecting...</a></p>
+</body>
+</html>
+"""
+
+
 def walk(root: Path, path: Path, prefix: str = ""):
     entries = sorted(path.iterdir(), key=lambda p: (p.is_file(), p.name.lower()))
     entries = [p for p in entries if p.name not in {".nojekyll", "CNAME", "index.html"}]
@@ -61,19 +76,26 @@ def walk(root: Path, path: Path, prefix: str = ""):
     for index, entry in enumerate(entries):
         last = index == len(entries) - 1
         branch = "└── " if last else "├── "
-        if entry.is_file():
-            href = entry.relative_to(root).as_posix()
-            lines.append(f'{prefix}{branch}<a href="{href}">{entry.name}</a>')
-        else:
-            lines.append(f"{prefix}{branch}{entry.name}")
+        href = entry.relative_to(root).as_posix()
+        lines.append(f'{prefix}{branch}<a href="{href}">{entry.name}</a>')
         if entry.is_dir():
             lines.extend(walk(root, entry, prefix + ("    " if last else "│   ")))
 
     return lines
 
 
+def write_redirect_indexes(root: Path) -> None:
+    for path in root.rglob("*"):
+        if not path.is_dir() or path == root:
+            continue
+        depth = len(path.relative_to(root).parts)
+        target = "/".join([".."] * depth) or "."
+        (path / "index.html").write_text(REDIRECT_TEMPLATE.format(target=target), encoding="utf-8")
+
+
 def main() -> int:
     root = Path("pages")
+    write_redirect_indexes(root)
     tree = "\n".join(walk(root, root))
     (root / "index.html").write_text(HTML_TEMPLATE.format(tree=tree), encoding="utf-8")
     return 0
