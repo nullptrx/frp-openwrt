@@ -61,8 +61,11 @@ def walk(root: Path, path: Path, prefix: str = ""):
     for index, entry in enumerate(entries):
         last = index == len(entries) - 1
         branch = "└── " if last else "├── "
-        href = entry.relative_to(root).as_posix()
-        lines.append(f'{prefix}{branch}<a href="{href}">{entry.name}</a>')
+        if entry.is_file():
+            href = entry.relative_to(root).as_posix()
+            lines.append(f'{prefix}{branch}<a href="{href}">{entry.name}</a>')
+        else:
+            lines.append(f"{prefix}{branch}{entry.name}")
         if entry.is_dir():
             lines.extend(walk(root, entry, prefix + ("    " if last else "│   ")))
 
