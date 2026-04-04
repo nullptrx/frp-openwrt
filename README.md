@@ -58,6 +58,8 @@ The generated packages are written under `bin/packages/*/frp/`.
 ```bash
 # only needs to be run once
 wget -O - https://cdn.jsdelivr.net/gh/nullptrx/frp-openwrt@main/feed.sh | ash
+# fallback
+wget -O - https://raw.githubusercontent.com/nullptrx/frp-openwrt/refs/heads/main/feed.sh | ash
 ```
 
 #### 2. Install
