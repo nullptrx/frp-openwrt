@@ -76,10 +76,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ env.BUILD_HEAD_SHA }}
+          path: build-src
+
+      - name: Checkout repository at current commit
+        uses: actions/checkout@v4
+        with:
+          path: site-src
 
       - name: Get version
         run: |
-          version=$(cat frp.ver)
+          version=$(cat "$GITHUB_WORKSPACE/build-src/frp.ver")
           echo "FRP_VERSION=$version" >> "$GITHUB_ENV"
           echo "FRP Version: $version"
 
@@ -143,7 +149,7 @@ jobs:
           touch "$GITHUB_WORKSPACE/pages/.nojekyll"
           echo "frpfrp.pages.dev" > "$GITHUB_WORKSPACE/pages/CNAME"
           cp "$RUNNER_TEMP/frp.pub" "$GITHUB_WORKSPACE/pages/frp.pub"
-          cp "$GITHUB_WORKSPACE/feed.sh" "$GITHUB_WORKSPACE/pages/feed.sh"
+          cp "$GITHUB_WORKSPACE/site-src/feed.sh" "$GITHUB_WORKSPACE/pages/feed.sh"
 
           publish_ext() {
             local ext="$1"
@@ -182,7 +188,7 @@ jobs:
               if [ "$ext" = "ipk" ]; then
                 (
                   cd "$repo_dir"
-                  python3 "$GITHUB_WORKSPACE/scripts/build_ipk_index.py"
+                  python3 "$GITHUB_WORKSPACE/site-src/scripts/build_ipk_index.py"
                   if [ -n "${USIGN_BIN:-}" ] && [ -n "${USIGN_KEY:-}" ]; then
                     "$USIGN_BIN" -S -m Packages -s "$USIGN_KEY" -x Packages.sig
                   fi
@@ -194,7 +200,7 @@ jobs:
           publish_ext "ipk" "$ipk_base_dir" '*/luci-*-*-ipk/*.ipk' 'bin-*-*-ipk'
           publish_ext "apk" "$apk_base_dir" '*/luci-*-*-apk/*.apk' 'bin-*-*-apk'
 
-          python3 "$GITHUB_WORKSPACE/scripts/render_feed_index.py"
+          python3 "$GITHUB_WORKSPACE/site-src/scripts/render_feed_index.py"
 
           find "$GITHUB_WORKSPACE/pages" -type f | sort
 
