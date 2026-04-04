@@ -76,6 +76,12 @@ jobs:
           gh run download "$BUILD_RUN_ID" --dir artifacts
           find artifacts -maxdepth 2 -type d | sort
 
+      - name: Install ipk index tools
+        run: |
+          set -euo pipefail
+          sudo apt-get -qq update
+          sudo apt-get -qq install libarchive-tools
+
       - name: Generate Pages feed layout
         run: |
           set -euo pipefail
@@ -121,6 +127,12 @@ jobs:
 
               cp "${bin_files[@]}" "$repo_dir/"
               cp "${luci_files[@]}" "$repo_dir/"
+              if [ "$ext" = "ipk" ]; then
+                (
+                  cd "$repo_dir"
+                  python3 "$GITHUB_WORKSPACE/scripts/build_ipk_index.py"
+                )
+              fi
             done
           }
 
