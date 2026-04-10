@@ -1,11 +1,20 @@
-name: Update FRP
+name: Sync FRP Release
 
 on:
-  # schedule:
-  #   - cron: '0 3 * * *'
+  # GitHub cannot subscribe to release events from another repository directly,
+  # so we poll the upstream latest release on a schedule.
+  schedule:
+    - cron: '0 */6 * * *'
   workflow_dispatch:
   repository_dispatch:
     types: [trigger-update]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-frp-release
+  cancel-in-progress: true
 
 jobs:
   update:
@@ -166,4 +175,3 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.GH_PAT }}" \
             -d '{"event_type":"trigger-build"}'
-
