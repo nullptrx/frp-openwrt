@@ -1,13 +1,7 @@
 name: Sync FRP Release
 
 on:
-  # GitHub cannot subscribe to release events from another repository directly,
-  # so we poll the upstream latest release on a schedule.
-  schedule:
-    - cron: '0 */6 * * *'
   workflow_dispatch:
-  repository_dispatch:
-    types: [trigger-update]
 
 permissions:
   contents: write
